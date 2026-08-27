@@ -28,12 +28,21 @@ namespace Follow.UI
         BookButton _book;
         JournalBook _journal;
 
+        RectTransform _prompt;
+        TextMeshProUGUI _promptLabel;
+        object _promptOwner;
+
         RectTransform _toast;
         TextMeshProUGUI _toastLabel;
         Coroutine _toastRoutine;
 
         void Awake() { Instance = this; }
-        void OnDestroy() { if (Instance == this) Instance = null; }
+        void OnDestroy()
+        {
+            var state = GameState.Instance;
+            if (state != null) state.Gained -= OnGained;
+            if (Instance == this) Instance = null;
+        }
 
         void Start()
         {
@@ -52,11 +61,11 @@ namespace Follow.UI
             // Clock, top right, with the vitals bars tucked under it.
             var dial = SundialWidget.Create(_root);
             UIFactory.Anchor(dial.GetComponent<RectTransform>(), new Vector2(1f, 1f),
-                new Vector2(-44f, -34f), new Vector2(290f, 210f));
+                new Vector2(-44f, -30f), new Vector2(300f, 244f));
 
             var vitals = VitalsWidget.Create(_root);
             UIFactory.Anchor(vitals.GetComponent<RectTransform>(), new Vector2(1f, 1f),
-                new Vector2(-52f, -266f), new Vector2(140f, 260f));
+                new Vector2(-58f, -290f), new Vector2(156f, 306f));
 
             BuildCounters();
 
@@ -64,9 +73,22 @@ namespace Follow.UI
             _journal = JournalBook.Create(_root);
             _book = BookButton.Create(_root, ToggleJournal);
             UIFactory.Anchor(_book.GetComponent<RectTransform>(), new Vector2(0f, 0f),
-                new Vector2(52f, 48f), new Vector2(150f, 180f));
+                new Vector2(56f, 104f), new Vector2(160f, 190f));
 
             BuildToast();
+            BuildPrompt();
+
+            var state = GameState.Instance;
+            if (state != null) state.Gained += OnGained;
+        }
+
+        void OnGained(GameState.Track track, int amount)
+        {
+            // The bars look after their own numbers; this one owns the stick counter,
+            // which is a chip in the opposite corner and would otherwise change in silence.
+            if (track != GameState.Track.Sticks || _sticksChip == null) return;
+            FloatingNumber.Pop(_sticksChip.GetComponent<RectTransform>(), amount,
+                amount >= 0 ? T.amber : T.berry);
         }
 
         void BuildCounters()
@@ -74,15 +96,104 @@ namespace Follow.UI
             var holder = UIFactory.Rect("Counters", _root);
             UIFactory.Anchor(holder, new Vector2(0f, 1f), new Vector2(44f, -36f), new Vector2(340f, 150f));
 
-            _sticksChip = UIFactory.Chip("Sticks", holder, "0", T.amber, new Vector2(164f, 64f));
-            UIFactory.Anchor(_sticksChip.GetComponent<RectTransform>(), new Vector2(0f, 1f),
-                Vector2.zero, new Vector2(164f, 64f));
-            _sticksChip.transform.localRotation = Quaternion.Euler(0f, 0f, -1.4f);
+            _sticksChip = LabelledChip("Sticks", holder, T.amber, 0f, -1.4f, out _);
+            _foodChip = LabelledChip("Food", holder, T.leaf, -78f, 1.8f, out _);
+        }
 
-            _foodChip = UIFactory.Chip("Food", holder, "0", T.leaf, new Vector2(164f, 64f));
-            UIFactory.Anchor(_foodChip.GetComponent<RectTransform>(), new Vector2(0f, 1f),
-                new Vector2(14f, -76f), new Vector2(164f, 64f));
-            _foodChip.transform.localRotation = Quaternion.Euler(0f, 0f, 1.8f);
+        /// <summary>A counter with its name spelled out. A coloured dot alone is a riddle.</summary>
+        CozyChip LabelledChip(string name, RectTransform holder, Color dot, float y, float tilt,
+            out TextMeshProUGUI caption)
+        {
+            var size = new Vector2(150f, 64f);
+            var chip = UIFactory.Chip(name, holder, "0", dot, size);
+            var rt = chip.GetComponent<RectTransform>();
+            UIFactory.Anchor(rt, new Vector2(0f, 1f), new Vector2(y < 0f ? 14f : 0f, y), size);
+            chip.transform.localRotation = Quaternion.Euler(0f, 0f, tilt);
+
+            caption = UIFactory.Label("Caption", rt, name, 21, T.cream,
+                TextAlignmentOptions.Left, true);
+            UIFactory.Anchor(caption.rectTransform, new Vector2(1f, 0.5f), new Vector2(12f, 0f),
+                new Vector2(150f, 30f));
+            caption.rectTransform.pivot = new Vector2(0f, 0.5f);
+            TextStyles.Chunky(caption, T.outline, new Color(0f, 0f, 0f, 0.4f));
+            return chip;
+        }
+
+        /// <summary>
+        /// The "press E" line. Separate from the toast because it stays up for as long as
+        /// you are standing somewhere, rather than announcing something that happened.
+        /// </summary>
+        void BuildPrompt()
+        {
+            _prompt = UIFactory.Card("Prompt", _root, new Vector2(560f, 78f), T.cream, 0.6f);
+            UIFactory.Anchor(_prompt, new Vector2(0.5f, 0f), new Vector2(0f, 262f), new Vector2(560f, 78f));
+            _prompt.pivot = new Vector2(0.5f, 0f);
+
+            _promptLabel = UIFactory.Label("Text", _prompt, "", 28, T.ink,
+                TextAlignmentOptions.Center, true);
+            UIFactory.Stretch(_promptLabel.rectTransform, 16f);
+            TextStyles.Soft(_promptLabel, new Color(0f, 0f, 0f, 0.16f));
+
+            UIFactory.Group(_prompt).alpha = 0f;
+        }
+
+        /// <summary>
+        /// Raise a standing prompt.
+        ///
+        /// Several systems can want the line at once - you can be knee-deep in a pond with
+        /// the dog at your heel and a deer in front of you - and they all ask every frame,
+        /// so whoever happened to run last used to win. Priority decides instead, and it is
+        /// re-contested each frame, which is what makes the line stable rather than a
+        /// flicker between three sentences.
+        /// </summary>
+        public void ShowPrompt(object owner, string text, int priority = 1)
+        {
+            if (_promptLabel == null) return;
+            _askedThisFrame = true;
+            if (priority < _bestPriority) return;
+
+            _bestPriority = priority;
+            _promptOwner = owner;
+            _pendingText = text;
+        }
+
+        /// <summary>What the standing prompt currently says, or empty. Read by the probe.</summary>
+        public string PromptText => _pendingText ?? "(none)";
+
+        public void HidePrompt(object owner)
+        {
+            if (_promptOwner != owner) return;
+            _promptOwner = null;
+            _pendingText = null;
+        }
+
+        int _bestPriority;
+        string _pendingText;
+        bool _askedThisFrame;
+
+        /// <summary>
+        /// Settles the prompt after every system has had its say.
+        ///
+        /// LateUpdate rather than Update, so the outcome never depends on script execution
+        /// order: whoever asked with the highest priority this frame gets the line, and if
+        /// nobody asked at all the line goes away by itself. A system that simply stops
+        /// asking no longer leaves a stale sentence on screen.
+        /// </summary>
+        void LateUpdate()
+        {
+            if (_prompt == null) return;
+
+            if (!_askedThisFrame)
+            {
+                _pendingText = null;
+                _promptOwner = null;
+            }
+            _askedThisFrame = false;
+            _bestPriority = 0;
+
+            var group = UIFactory.Group(_prompt);
+            float want = _pendingText != null && !UIModal.Any ? 1f : 0f;
+            group.alpha = Mathf.MoveTowards(group.alpha, want, Time.unscaledDeltaTime / 0.18f);
         }
 
         void BuildToast()
@@ -153,6 +264,8 @@ namespace Follow.UI
 
             _sticksChip?.Set(state.sticks.ToString());
             _foodChip?.Set(state.food.ToString());
+
+            if (_prompt != null && _pendingText != null) _promptLabel.text = _pendingText;
 
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb != null && (kb.jKey.wasPressedThisFrame || kb.tabKey.wasPressedThisFrame))

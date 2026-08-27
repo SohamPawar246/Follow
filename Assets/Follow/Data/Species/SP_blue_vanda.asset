@@ -24,5 +24,8 @@ MonoBehaviour:
   firstAppearsOnDay: 4
   rarity: 0.7
   wariness: 0
-  modelPrefab: {fileID: 0}
+  modelPrefab: {fileID: 919132149155446097, guid: 828e78b349dc47e4dab6f5c17f5b664b, type: 3}
+  animator: {fileID: 0}
+  tint: {r: 0.62, g: 0.55, b: 1, a: 1}
+  worldScale: 1.5
   silhouette: {fileID: 0}

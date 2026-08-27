@@ -79,6 +79,8 @@ namespace Follow.UI
         public TMP_FontAsset uiFont;
         [Tooltip("Handwritten face for field notes. Patrick Hand or Caveat.")]
         public TMP_FontAsset handFont;
+        [Tooltip("Readable face for paragraphs. Baloo is too heavy at body size.")]
+        public TMP_FontAsset bodyFont;
 
         public int titleSize = 132;
         public int headingSize = 46;

@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c60f6684c10b3014bba0860515888f23, type: 3}
+  m_Name: CozySounds
+  m_EditorClassIdentifier: Assembly-CSharp::Follow.UI.CozySounds
+  bookOpen: {fileID: 8300000, guid: 4ff702a2bb7bde0468823319096e4671, type: 3}
+  bookClose: {fileID: 8300000, guid: 709d3989daa265d4186e2d7607306024, type: 3}
+  pageFlips:
+  - {fileID: 8300000, guid: 084548ddd90422840a317c78374bc644, type: 3}
+  - {fileID: 8300000, guid: d14fd32474605df4ea4e5c3db6eb36cb, type: 3}
+  - {fileID: 8300000, guid: 32ce898654e3b2b499c72ef7cbbafb20, type: 3}
+  scratch: {fileID: 8300000, guid: 700ff32cb13d8fd4694d1a383d1a26dc, type: 3}
+  buttonPress: {fileID: 8300000, guid: ef3abe385fe79d3448b01a446b4c22c8, type: 3}
+  buttonHover: {fileID: 8300000, guid: a978679139bccf748932cd7da1402710, type: 3}
+  chipPop: {fileID: 8300000, guid: 04aee4619dd12a34d8518e35a7313f53, type: 3}
+  footsteps:
+  - {fileID: 8300000, guid: 242e22033345e554ab413ca2a8ca02cf, type: 3}
+  - {fileID: 8300000, guid: c851750ec77a624449bab7bc2a2801aa, type: 3}
+  - {fileID: 8300000, guid: be1a81887cc6ae74caf02cce01696c86, type: 3}
+  - {fileID: 8300000, guid: 451898499483588448294b703744bf0f, type: 3}
+  - {fileID: 8300000, guid: 7322d7c988d0204409422a80a722beed, type: 3}
+  - {fileID: 8300000, guid: 6d4c4add1eb854e4684e953ec3c9cfac, type: 3}
+  - {fileID: 8300000, guid: 148da95f3e814dc43985a0c1266edcae, type: 3}
+  - {fileID: 8300000, guid: 73f6a4b575b5ffe46b98d0325b73b7e9, type: 3}
+  - {fileID: 8300000, guid: b53aa8d751c0bf146be1dc06a28f4137, type: 3}
+  - {fileID: 8300000, guid: 0ec2886d86a0a754880fff304d7848ca, type: 3}
+  shutter: {fileID: 8300000, guid: 96e18601cbccdec4bbba717ecbe1f6f2, type: 3}
+  uiVolume: 0.55

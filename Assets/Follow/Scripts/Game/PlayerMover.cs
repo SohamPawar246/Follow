@@ -66,6 +66,32 @@ namespace Follow.Game
             }
         }
 
+        /// <summary>
+        /// Turns to look at something, over the next moment rather than instantly. Used
+        /// when the lens comes up: you cannot photograph what you are standing side-on to.
+        /// </summary>
+        public void FaceTowards(Vector3 direction)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f) return;
+            StopAllCoroutines();
+            StartCoroutine(TurnTo(Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg));
+        }
+
+        System.Collections.IEnumerator TurnTo(float targetYaw)
+        {
+            float t = 0f;
+            float from = transform.eulerAngles.y;
+            while (t < 0.28f)
+            {
+                t += Time.deltaTime;
+                float y = Mathf.LerpAngle(from, targetYaw, Mathf.SmoothStep(0f, 1f, t / 0.28f));
+                transform.rotation = Quaternion.Euler(0f, y, 0f);
+                yield return null;
+            }
+            transform.rotation = Quaternion.Euler(0f, targetYaw, 0f);
+        }
+
         static Vector2 ReadAxis()
         {
             var kb = Keyboard.current;

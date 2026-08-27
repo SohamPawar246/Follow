@@ -1,0 +1,275 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73c5461de6c02a642b2d22dc40274a83, type: 3}
+  m_Name: WorldPalette
+  m_EditorClassIdentifier: Assembly-CSharp::Follow.World.WorldPalette
+  layers:
+  - name: Pine
+    rule: 0
+    prefabs:
+    - {fileID: 6581490419768747885, guid: 86692813a18a64f4fbca05606f7d96cd, type: 3}
+    - {fileID: 2873409335384796627, guid: 59a624ddc746c1643a6b19e7f8f0184c, type: 3}
+    - {fileID: 4462360828530893382, guid: 970b3e6c04254cf46a5201c15a039098, type: 3}
+    - {fileID: 2619678770260003941, guid: 065be134885138d4295d2b665dd9394b, type: 3}
+    - {fileID: 7652743076977016314, guid: 19c2af641f4a2334fafab0c546d30574, type: 3}
+    chance: 1
+    scale: {x: 7, y: 12}
+    canopy: 1
+  - name: Broadleaf
+    rule: 1
+    prefabs:
+    - {fileID: 5450219809011665435, guid: 2593bf32b78f20a439688c7ad61a30fe, type: 3}
+    - {fileID: 6702129030500544190, guid: 451e4057bbc110a44940ebaa5710bde8, type: 3}
+    - {fileID: 1303514897580395420, guid: 9ed89da0d44ef5147951069ea01aadaa, type: 3}
+    - {fileID: 5349284499365694850, guid: a979f7339e4c98f4389e486d0a8e3f2a, type: 3}
+    - {fileID: 5671955927188657904, guid: 579fea237205e654fbbac0392928a8c8, type: 3}
+    - {fileID: 932659120338829973, guid: 11ee04f7202235b44a239f5ebe684f4f, type: 3}
+    - {fileID: 2400885580473798455, guid: 929d87496bf6b2844bbbe6d5ca18053b, type: 3}
+    - {fileID: 6808249560791824997, guid: a1ab8a97b862bcc4ba360a47ebedca5b, type: 3}
+    - {fileID: 6388563766912891351, guid: a5a02eda1ee5d7f4bae001d10e99c629, type: 3}
+    - {fileID: 8551708570370675182, guid: b76080e5c93a7e34e9051b20c7d7aec9, type: 3}
+    - {fileID: 8909065057494885680, guid: 534bef76e62ee9d4d8c079141466a961, type: 3}
+    - {fileID: 5112815357159911421, guid: f128ed4ba55b5c54f8d3bbac500a66ee, type: 3}
+    - {fileID: 2301979157129582993, guid: 42ae7f0cb0daf3d4baeb54221cbd2ed3, type: 3}
+    - {fileID: 984361725517439822, guid: a04c332603e3bc74694ac1168a8884d5, type: 3}
+    chance: 1
+    scale: {x: 6, y: 10}
+    canopy: 1
+  - name: AccentTree
+    rule: 2
+    prefabs:
+    - {fileID: 8502455790669200838, guid: b3fca0ae160455f4194666feabda246a, type: 3}
+    - {fileID: 6875094197936021567, guid: 9ee9defc1fe7ff948b5604df575f0724, type: 3}
+    - {fileID: 1795682486688672156, guid: 16118000d4d0b804083d0889b75892e8, type: 3}
+    - {fileID: 2665146228518126797, guid: d9c8acb74a9fab44eb881e72ff1ebbd5, type: 3}
+    - {fileID: 3769103470820970806, guid: 6e56727476e8e7846bda3166da1e78a4, type: 3}
+    - {fileID: 3442239691246412573, guid: 2bd829311104e6847bf88df06ba51d27, type: 3}
+    - {fileID: 2899105745101528141, guid: 1265b0505d7c9f04f8f4a057fe289bf0, type: 3}
+    - {fileID: 332879421544663538, guid: fcef6d24160f4084799d200d97a8bde3, type: 3}
+    - {fileID: 6365087893396804118, guid: a12a15bedcf07674c90caf16616b9f56, type: 3}
+    - {fileID: 149899104518386039, guid: a3de295feb0cad64fa38235893a58064, type: 3}
+    chance: 0.32
+    scale: {x: 6, y: 9}
+    canopy: 1
+  - name: DeadTree
+    rule: 3
+    prefabs:
+    - {fileID: 8105048984783639552, guid: b406b965e2f428c47bd4a948ffe19045, type: 3}
+    - {fileID: 7093538279169152993, guid: d8978e6f1b982ef408162ffacce3a316, type: 3}
+    - {fileID: 5922021113132874087, guid: 20262a0fad102dd4faa339c07341c240, type: 3}
+    - {fileID: 1648210785411444638, guid: 73276d1bbade4e740bbff65a241392f1, type: 3}
+    - {fileID: 4570004048602638654, guid: 7a0657e75823804499fca9750779a500, type: 3}
+    - {fileID: 4196061235658461581, guid: 3f951feac3366c542846c52c4f97c6c2, type: 3}
+    - {fileID: 5066598235797887676, guid: 9749a7c0e22078648abf865062bfef5c, type: 3}
+    - {fileID: 7967496822972151085, guid: 2cc6b137c9c37054ab73a5e9da8b8257, type: 3}
+    - {fileID: 5985790826400707701, guid: 9e1f7d00d0542d749bdf0b8bd459d0cd, type: 3}
+    - {fileID: 6337981384351696490, guid: 7b729c967b0259c4faa3bc135286f9e9, type: 3}
+    - {fileID: 7396915235231380611, guid: 86477d9a069ba6a4e894c261778cea31, type: 3}
+    chance: 0.9
+    scale: {x: 6, y: 10}
+    canopy: 1
+  - name: Waterside
+    rule: 10
+    prefabs:
+    - {fileID: 4602852242621609280, guid: 39481c3ccdec2ca4e9c6ffed4d294ee5, type: 3}
+    - {fileID: 6533680047857551602, guid: 1bb3ef3b2cadc9946b7f22658f10b1f8, type: 3}
+    - {fileID: 6714743862407422204, guid: c9c8130878a307a4aa7cd6b4ccb0b526, type: 3}
+    - {fileID: 226126392454922821, guid: 4141bc90bf775bc4abc4df6b13afcb22, type: 3}
+    - {fileID: 4765101301400279913, guid: 8b94333d45a5b9a458725f8b0679d49b, type: 3}
+    - {fileID: 1583026012720918230, guid: f97d96a00a8017b4787dcbc86e978c69, type: 3}
+    - {fileID: 568825538801031649, guid: db102bff6ed764c4d9ca3e1ba335a808, type: 3}
+    - {fileID: 396532196438241548, guid: a1fa36d181788e140b9a525396531bfc, type: 3}
+    - {fileID: 3626076770623139539, guid: e090215e9a2884549996a2f6d7101a55, type: 3}
+    - {fileID: 1524076405602637883, guid: 330fbc3c1df645d47b301c0d5460ba60, type: 3}
+    - {fileID: 6460561662312598418, guid: 6e4c7ebe2925972468ee5a5b04a4d607, type: 3}
+    - {fileID: 5217454446557140104, guid: b6707c87590c39244a3628c58a6a7f28, type: 3}
+    - {fileID: 3564125980170620965, guid: fecfd6b1f6ae3574b961203f1e494a97, type: 3}
+    chance: 0.7
+    scale: {x: 0.7, y: 1.4}
+    canopy: 0
+  - name: Rocks
+    rule: 8
+    prefabs:
+    - {fileID: 6669390580619861068, guid: 800a4a41bb022c54091c2003afcda61f, type: 3}
+    - {fileID: 4593372205367860513, guid: 43f456c9c8bc7694aae8d71710d067d7, type: 3}
+    - {fileID: 8076613648751674086, guid: 1a421e2a725ee604d81b4cdf8705993f, type: 3}
+    - {fileID: 6019993206064309041, guid: a8d80e48f5ac79b498c3031ccdf2c7c0, type: 3}
+    - {fileID: 982451210067777801, guid: 83efd129ac34ce749b4bd2b4110481a2, type: 3}
+    - {fileID: 1049359898305806486, guid: 855cfcbeb902b2345a2a61a3e1d9ecb6, type: 3}
+    - {fileID: 5148347818546471063, guid: cf17ad60ef089704ea0d01f0e601c734, type: 3}
+    - {fileID: 4108420708100532135, guid: e0d7bc05b0e2f2241bb8dfef916ed633, type: 3}
+    - {fileID: 6765629475976686522, guid: 8619a0b6e30ffcd4688504144ee53ee9, type: 3}
+    - {fileID: 7236478803281019010, guid: 093d9042bbd80954080a2fe8eda9cbc4, type: 3}
+    - {fileID: 3221647271592244328, guid: df32eb689daea0241928ec51fc79d81b, type: 3}
+    - {fileID: 6408546830678086338, guid: 1e5e22082bad0e34183edef419424700, type: 3}
+    - {fileID: 2128118502479390014, guid: c5996e0f9e651ad46af16bca7ca4636e, type: 3}
+    - {fileID: 5588164926071201832, guid: 80e16864975cd48439c5479d894b9ec1, type: 3}
+    - {fileID: 2161538810606766748, guid: 59b4a255d6ca5c444906dd8e430bb632, type: 3}
+    - {fileID: 7094859452487672653, guid: 843133dfdaf731848993a1a653b325f5, type: 3}
+    - {fileID: 2700198108206503888, guid: 660588520f231a14a8927e0446e67799, type: 3}
+    - {fileID: 25967546408703908, guid: d62654d5dc7403a449bd78e23e11c12b, type: 3}
+    - {fileID: 3527587699142832443, guid: 256abab6097046040927ab3b01d28b69, type: 3}
+    - {fileID: 6480861703068344394, guid: f0943dfb1780ba84fbe747b749085be4, type: 3}
+    - {fileID: 3565223615314614370, guid: 8c42e4cb9dbb72246a4634d47c3dbb32, type: 3}
+    - {fileID: 543963655289531062, guid: 6af015ee56b26d741b396d7457175304, type: 3}
+    - {fileID: 6936458927303909511, guid: bde1eccd0f4cd0443a38cdfc1c8153d7, type: 3}
+    - {fileID: 2720085466216222596, guid: 87eb0e57936f77c459c1c34689e0342d, type: 3}
+    - {fileID: 3255744847751534004, guid: a844577d5e3d309409658a6aa7029adf, type: 3}
+    - {fileID: 9031297416691624892, guid: be67066bb504705448c54f88462c303c, type: 3}
+    - {fileID: 2954772221296836177, guid: a4d89879fa04f9547a36f6300a2a7277, type: 3}
+    - {fileID: 6086376626126607548, guid: 4522ced82339a164db94306a01c28189, type: 3}
+    - {fileID: 1301076813720468445, guid: be3ba83b562e9804d8a72abf69928050, type: 3}
+    - {fileID: 3762817588818154951, guid: 9816f9d63f5981f43b74c203b1fb5694, type: 3}
+    - {fileID: 4865916489279034106, guid: 399068b7aaf71474791938ad39e95758, type: 3}
+    - {fileID: 3795992425232624876, guid: 96a9736fb4419b04fa6db5a38a4be8a4, type: 3}
+    - {fileID: 8413077229148891064, guid: b8d512db210ea704183a9b0e46b183b9, type: 3}
+    - {fileID: 6796534673893406744, guid: 04611cb2abd76ac4c96d24b1b7e10b2f, type: 3}
+    - {fileID: 9106731825879480392, guid: b275239b97d7ea84e8bff94e67036f8c, type: 3}
+    - {fileID: 2374977357916912110, guid: c43133e186d74cd43b1c8c02dc68da12, type: 3}
+    - {fileID: 4032270807657701505, guid: 232369f538413c24a955db0b27825d26, type: 3}
+    - {fileID: 7946323566745601981, guid: ea76c0196d814754a88b7605a1ed96cf, type: 3}
+    - {fileID: 6044656713295181027, guid: fb443b574b1a9444187f7de2f8039bd5, type: 3}
+    - {fileID: 5764824096767485387, guid: f2ac13cafbbcc984aafdacda5aace5df, type: 3}
+    - {fileID: 1507997151926920013, guid: 8f3a6f3e11550a84d907b76dea191522, type: 3}
+    - {fileID: 5027212614281689949, guid: 98f8b03da87f12346882882d6c20fd4b, type: 3}
+    - {fileID: 3719937177095081214, guid: 14ff2131eaaa1d1459dba434e18eaf12, type: 3}
+    chance: 0.5
+    scale: {x: 0.5, y: 2.4}
+    canopy: 0
+  - name: Firewood
+    rule: 11
+    prefabs:
+    - {fileID: 3606390385713180299, guid: b565bce026df4af4bb0d26f3ce941310, type: 3}
+    - {fileID: 2117222029004532075, guid: d54a095dd8a029743b1a98da4570bd35, type: 3}
+    chance: 0.07
+    scale: {x: 1, y: 1.5}
+    canopy: 0
+  - name: Forage
+    rule: 12
+    prefabs:
+    - {fileID: 4554696216238641363, guid: 44ba3ccb55e67034685bb405bd4fdc29, type: 3}
+    - {fileID: 1575794135019090025, guid: 48b008ed3a42bed47ae8e859f28d8739, type: 3}
+    - {fileID: 926655112705877022, guid: 2646b15ec93f67e48b13ed64421796df, type: 3}
+    - {fileID: 4176609427569438399, guid: 63cc690438e3a3a42af9b69ed5451df7, type: 3}
+    - {fileID: 82286343398315278, guid: b0311665b67f1ac4d9c382bb80ec79e6, type: 3}
+    - {fileID: 7274237896398766584, guid: 86d0ec96449de844388fd7fa3497d044, type: 3}
+    - {fileID: 9085940059864444779, guid: c5efc02e837d1db4e9be4d10088df450, type: 3}
+    - {fileID: 1162131005206460533, guid: 6c64389965d7ce94db7b1b003ac40f8f, type: 3}
+    chance: 0.06
+    scale: {x: 0.45, y: 0.7}
+    canopy: 0
+  - name: Understory
+    rule: 4
+    prefabs:
+    - {fileID: 4950948862135581584, guid: 970c12ab047282947a3fb4b76a4b1f0c, type: 3}
+    - {fileID: 4907832660971555825, guid: 114079bca43adb2408eda5de85e28cf8, type: 3}
+    - {fileID: 7350012437221768232, guid: 62c9bc4a77ebe6f4fb1ee5d016a979d7, type: 3}
+    - {fileID: 7127649933692422471, guid: 9b5588e72f460ed4e9e31fb0094f23f5, type: 3}
+    - {fileID: 6200649502716869356, guid: f46419f6e4fb6b8439d571f4c450378d, type: 3}
+    - {fileID: 2411640321234662912, guid: 6af817989a6207d4d8cf772ad1b9e887, type: 3}
+    - {fileID: 8643749244406587735, guid: 85e4a85a544e55a44a9101b6dc74b4de, type: 3}
+    - {fileID: 1046845549107573917, guid: 33163c3cfb948504bad8a8d8be928378, type: 3}
+    - {fileID: 9152405726043335342, guid: 833c2c6b9bcdbf144959e23a36e50b90, type: 3}
+    - {fileID: 5753952091035529669, guid: b61887fb2a6926b4ea3cc0633f344fd3, type: 3}
+    - {fileID: 4944215676860133259, guid: e777836631e95d24a9ed29284590c0a3, type: 3}
+    - {fileID: 5689167317079219578, guid: e110974cf0a0a654099468eabca39e30, type: 3}
+    - {fileID: 5928315634068824721, guid: 91840c431f1b4ef41a246a20040ae081, type: 3}
+    - {fileID: 8069247991531288279, guid: da3edd7b4aabc1943bd01ae0c998b02b, type: 3}
+    - {fileID: 7288596813554297954, guid: b9e9aa54e1a4a9a4e89d698d8135d7a2, type: 3}
+    - {fileID: 9093557538644637188, guid: e5618fe0154389a44a46ecd4e2d5a559, type: 3}
+    - {fileID: 3120457267392659618, guid: d0d8774a1d7175745807d02980d298ab, type: 3}
+    - {fileID: 2231276203217744030, guid: d029721177625494791fe502a8efac20, type: 3}
+    - {fileID: 6635179759865963874, guid: 6c99d5c6957aaf047a03b7d44d51b2f2, type: 3}
+    - {fileID: 9202130085983402869, guid: 100e5617a574e644583fca4d7754de3b, type: 3}
+    - {fileID: 2828145148979747598, guid: 59e4fde73d4d2894490ee825cb1bc8b8, type: 3}
+    - {fileID: 2639286039226319767, guid: 5a5c0bd44f9a67845897150a6f6f8501, type: 3}
+    - {fileID: 2907811433592209590, guid: 2226a9a1203415b44888d3267d7b0899, type: 3}
+    - {fileID: 1761397599982252721, guid: 2ad89d420d14ef34fbe20543f549c3a8, type: 3}
+    chance: 0.62
+    scale: {x: 0.9, y: 1.9}
+    canopy: 0
+  - name: Ferns
+    rule: 5
+    prefabs:
+    - {fileID: 5319197009869377812, guid: 83e90d4d4f3e5cd4f904f04508fa616b, type: 3}
+    - {fileID: 75577307715135531, guid: bffd7572e169a694ab25ff07253890ad, type: 3}
+    - {fileID: 4602852242621609280, guid: 39481c3ccdec2ca4e9c6ffed4d294ee5, type: 3}
+    chance: 0.5
+    scale: {x: 0.4, y: 0.8}
+    canopy: 0
+  - name: Flowers
+    rule: 7
+    prefabs:
+    - {fileID: 9192506340722473981, guid: 1ddf78a3230be33478f1154eea921626, type: 3}
+    - {fileID: 3418051245367306833, guid: 535b1ad7d5713b849887f916aae98e35, type: 3}
+    - {fileID: 5534406954903571581, guid: 739ea24bdab80794f86eedc896cbb3a6, type: 3}
+    - {fileID: 3327270840657959667, guid: aea39fd3afb8bcb4999cd456aabacb68, type: 3}
+    - {fileID: 5239969196167445133, guid: 1931f2db93d907b448147532b8849f0a, type: 3}
+    - {fileID: 6436639107509611520, guid: ff343a5f1c24717479fa77a07890daf7, type: 3}
+    - {fileID: 960372707588224758, guid: c5e3d33046412ac49a77138a89c65673, type: 3}
+    - {fileID: 3258880083299345314, guid: e8f93023bbd126441a6288d1ac261e0d, type: 3}
+    - {fileID: 45148178057015667, guid: 17598919c2de4494e906033710b4a623, type: 3}
+    chance: 0.28
+    scale: {x: 0.45, y: 0.8}
+    canopy: 0
+  - name: Grass
+    rule: 6
+    prefabs:
+    - {fileID: 705741869946200376, guid: e7ad963e0d9cf754888ca5118771077a, type: 3}
+    - {fileID: 3988141283571149180, guid: b709dd597ae70084ba6d60490461ff10, type: 3}
+    - {fileID: 939242456135368439, guid: 8023dd70d6c804a409e37e8dff49769a, type: 3}
+    - {fileID: 4868192943618368268, guid: 18c0ab78fbdd56a46b22430907192f50, type: 3}
+    - {fileID: 3950503637296707941, guid: e51222098c153424d8f7955706cbb407, type: 3}
+    - {fileID: 1946519725528627957, guid: 7e9ceefba87cdde4da95371bb9d5c9ae, type: 3}
+    - {fileID: 3893670626066247931, guid: 90a60ee771a89de44a0aa3b3224aaaab, type: 3}
+    - {fileID: 4587922932888010565, guid: 6153f5921587c8a40902d46757cc7bc6, type: 3}
+    - {fileID: 6298856970610400786, guid: 90524cf31dd02dc4fbb4e6ba0266f3ec, type: 3}
+    - {fileID: 2939651171410675726, guid: 0ee9765985e2ef24e9ce91e993a38af5, type: 3}
+    - {fileID: 226126392454922821, guid: 4141bc90bf775bc4abc4df6b13afcb22, type: 3}
+    - {fileID: 4765101301400279913, guid: 8b94333d45a5b9a458725f8b0679d49b, type: 3}
+    - {fileID: 1583026012720918230, guid: f97d96a00a8017b4787dcbc86e978c69, type: 3}
+    - {fileID: 568825538801031649, guid: db102bff6ed764c4d9ca3e1ba335a808, type: 3}
+    - {fileID: 396532196438241548, guid: a1fa36d181788e140b9a525396531bfc, type: 3}
+    - {fileID: 3626076770623139539, guid: e090215e9a2884549996a2f6d7101a55, type: 3}
+    - {fileID: 1524076405602637883, guid: 330fbc3c1df645d47b301c0d5460ba60, type: 3}
+    - {fileID: 6460561662312598418, guid: 6e4c7ebe2925972468ee5a5b04a4d607, type: 3}
+    - {fileID: 5217454446557140104, guid: b6707c87590c39244a3628c58a6a7f28, type: 3}
+    - {fileID: 3564125980170620965, guid: fecfd6b1f6ae3574b961203f1e494a97, type: 3}
+    chance: 0.55
+    scale: {x: 0.45, y: 0.85}
+    canopy: 0
+  - name: Pebbles
+    rule: 9
+    prefabs:
+    - {fileID: 5267865782010701092, guid: 1a3644601bb0e6642b2ce4fc597543e2, type: 3}
+    - {fileID: 2640951228665789666, guid: 195a32036091d2943990c22b63255ebc, type: 3}
+    - {fileID: 3019054208011143838, guid: 59a7a51c07f396f44b64f5ddf82d4697, type: 3}
+    - {fileID: 1973052735061084502, guid: 99c211d7a04da2e45a964a3ec8610ae6, type: 3}
+    - {fileID: 6953717334984127285, guid: 334168260aed1e1429ae2c01f442c014, type: 3}
+    - {fileID: 4934473131082753997, guid: bd8bc4a7917ffa04ca13f44a8ccc9b2c, type: 3}
+    - {fileID: 5091741265622466544, guid: 2896c0bd1b3da424089652303feda60c, type: 3}
+    - {fileID: 218980155056054548, guid: 0bb1112668bd42a4484b35fa9a0ee997, type: 3}
+    - {fileID: 6016295267607391608, guid: ec5908a329ee43e41844056736e4ddce, type: 3}
+    - {fileID: 6545130152900807917, guid: 1ca0f2d9f7597e74dba0099fb8529828, type: 3}
+    - {fileID: 6856100946040711584, guid: 3add5b079ff724b47896543b5df63eaf, type: 3}
+    chance: 0.3
+    scale: {x: 0.2, y: 0.5}
+    canopy: 0
+  groundMaterial: {fileID: 2100000, guid: 4606ff91300148f4799446533f3f99be, type: 2}
+  waterMaterial: {fileID: 2100000, guid: a6636659748f8404a86a2b265c061c93, type: 2}
+  campfireStones: {fileID: 919132149155446097, guid: a176058db00eea34fbcfca7dccdb956a, type: 3}
+  campfireLogs: {fileID: 919132149155446097, guid: 925ae7097c1f7a444905b05f8e474217, type: 3}
+  tent: {fileID: 919132149155446097, guid: 782d75e4f88027748883c023d86895b4, type: 3}
+  logStack: {fileID: 919132149155446097, guid: 967720063c7c29d468b13cfab0d9472c, type: 3}
+  stump: {fileID: 919132149155446097, guid: e13b912a1788de1429168aa6cf0486dc, type: 3}
+  stickModel: {fileID: 0}
+  forageModels: []

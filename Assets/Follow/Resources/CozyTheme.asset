@@ -34,8 +34,9 @@ MonoBehaviour:
   cardTilt: 1.2
   glossStrength: 0.28
   bannerSprite: {fileID: 21300000, guid: c017cf894a39f4244b3b61d8f9b375a2, type: 3}
-  uiFont: {fileID: 0}
-  handFont: {fileID: 0}
+  uiFont: {fileID: 11400000, guid: 6f4460ac65072b64c9c9f210a3f5edab, type: 2}
+  handFont: {fileID: 11400000, guid: a2737a94161026f4b9846cd3ff4b9e5e, type: 2}
+  bodyFont: {fileID: 11400000, guid: 96b503c4a58c6df4aaa99c96c84aeea9, type: 2}
   titleSize: 96
   headingSize: 34
   bodySize: 22

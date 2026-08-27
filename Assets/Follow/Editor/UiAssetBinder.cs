@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -7,17 +8,26 @@ using Follow.UI;
 namespace Follow.EditorTools
 {
     /// <summary>
-    /// Binds the small amount of borrowed art we still use, plus fonts.
+    /// Binds the borrowed art, the three fonts, and the sound effects.
     ///
-    /// Shapes are generated in code (see Sticker) because the outline weight is the art
-    /// direction. The one exception is Kenney's hanging banner: it is hand-drawn, it is
-    /// the element that makes a panel look like a game rather than a document, and it is
-    /// not worth reproducing procedurally.
+    /// Fonts are picked by exact file rather than by globbing the folder: the Nunito
+    /// download alone carries eighteen weights, and generating a TMP atlas for each one
+    /// would bloat the project for no benefit.
     /// </summary>
     public static class UiAssetBinder
     {
         const string Adventure = "Assets/kenney_ui-pack-adventure/PNG/Double/";
         const string FontDir = "Assets/Follow/Fonts";
+        const string AudioDir = "Assets/Follow/Audio";
+
+        // Display carries the personality, body carries the paragraphs, hand carries the
+        // surveyor's own voice. Baloo at body size is unreadable; Nunito as a title is dull.
+        static readonly (string path, string role)[] Fonts =
+        {
+            (FontDir + "/Baloo_2/static/Baloo2-ExtraBold.ttf", "ui"),
+            (FontDir + "/Nunito/static/Nunito-SemiBold.ttf",   "body"),
+            (FontDir + "/Patrick_Hand/PatrickHand-Regular.ttf", "hand"),
+        };
 
         [MenuItem("Follow/Bind Cozy UI Art", priority = 10)]
         public static void Bind()
@@ -27,14 +37,36 @@ namespace Follow.EditorTools
 
             theme.bannerSprite = ImportBanner(Adventure + "banner_hanging.png");
             BindFonts(theme);
-
             EditorUtility.SetDirty(theme);
+
+            var sounds = BindSounds();
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            Debug.Log("Cozy UI: banner=" + (theme.bannerSprite != null ? "ok" : "MISSING")
-                      + "  uiFont=" + (theme.uiFont != null ? theme.uiFont.name : "TMP default")
-                      + "  handFont=" + (theme.handFont != null ? theme.handFont.name : "none"));
+            Debug.Log("Cozy UI bound."
+                      + "\n  banner : " + (theme.bannerSprite != null ? "ok" : "MISSING")
+                      + "\n  ui     : " + Name(theme.uiFont)
+                      + "\n  body   : " + Name(theme.bodyFont)
+                      + "\n  hand   : " + Name(theme.handFont)
+                      + "\n  sounds : " + (sounds != null ? CountSounds(sounds) + " clips" : "none"));
+        }
+
+        static string Name(TMP_FontAsset f) => f != null ? f.name : "MISSING";
+
+        static int CountSounds(CozySounds s)
+        {
+            int n = 0;
+            if (s.bookOpen) n++;
+            if (s.bookClose) n++;
+            if (s.scratch) n++;
+            if (s.buttonPress) n++;
+            if (s.buttonHover) n++;
+            if (s.chipPop) n++;
+            if (s.shutter) n++;
+            n += s.pageFlips != null ? s.pageFlips.Count(c => c != null) : 0;
+            n += s.footsteps != null ? s.footsteps.Count(c => c != null) : 0;
+            return n;
         }
 
         static Sprite ImportBanner(string path)
@@ -44,7 +76,6 @@ namespace Follow.EditorTools
 
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
-            // Wide ends stay intact, the middle stretches to whatever the title needs.
             importer.spriteBorder = new Vector4(78f, 26f, 78f, 26f);
             importer.filterMode = FilterMode.Bilinear;
             importer.mipmapEnabled = false;
@@ -55,41 +86,91 @@ namespace Follow.EditorTools
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
-        /// <summary>Turns any TTF dropped into Assets/Follow/Fonts into a TMP font asset.</summary>
+        // --- fonts ---------------------------------------------------------------
+
         static void BindFonts(CozyTheme theme)
         {
-            if (!AssetDatabase.IsValidFolder(FontDir))
+            foreach (var (path, role) in Fonts)
             {
-                AssetDatabase.CreateFolder("Assets/Follow", "Fonts");
-                return;
-            }
-
-            foreach (var guid in AssetDatabase.FindAssets("t:Font", new[] { FontDir }))
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                var font = AssetDatabase.LoadAssetAtPath<Font>(path);
-                if (font == null) continue;
-
-                string assetPath = FontDir + "/" + Path.GetFileNameWithoutExtension(path) + " SDF.asset";
-                var tmp = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
-                if (tmp == null)
+                var tmp = MakeFontAsset(path);
+                if (tmp == null) { Debug.LogWarning("Font not found: " + path); continue; }
+                switch (role)
                 {
-                    tmp = TMP_FontAsset.CreateFontAsset(font);
-                    if (tmp == null) continue;
-                    tmp.name = Path.GetFileNameWithoutExtension(path) + " SDF";
-                    AssetDatabase.CreateAsset(tmp, assetPath);
-                    if (tmp.atlasTextures != null && tmp.atlasTextures.Length > 0)
-                        AssetDatabase.AddObjectToAsset(tmp.atlasTextures[0], tmp);
-                    if (tmp.material != null) AssetDatabase.AddObjectToAsset(tmp.material, tmp);
-                    AssetDatabase.SaveAssets();
+                    case "ui": theme.uiFont = tmp; break;
+                    case "body": theme.bodyFont = tmp; break;
+                    case "hand": theme.handFont = tmp; break;
                 }
-
-                string lower = Path.GetFileNameWithoutExtension(path).ToLowerInvariant();
-                bool handwritten = lower.Contains("patrick") || lower.Contains("caveat")
-                                   || lower.Contains("hand") || lower.Contains("script");
-                if (handwritten) theme.handFont = tmp;
-                else if (theme.uiFont == null) theme.uiFont = tmp;
             }
+        }
+
+        static TMP_FontAsset MakeFontAsset(string ttfPath)
+        {
+            var font = AssetDatabase.LoadAssetAtPath<Font>(ttfPath);
+            if (font == null) return null;
+
+            string dir = Path.GetDirectoryName(ttfPath).Replace((char)92, '/');
+            string assetPath = dir + "/" + Path.GetFileNameWithoutExtension(ttfPath) + " SDF.asset";
+
+            var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
+            if (existing != null) return existing;
+
+            var tmp = TMP_FontAsset.CreateFontAsset(font);
+            if (tmp == null) return null;
+            tmp.name = Path.GetFileNameWithoutExtension(ttfPath) + " SDF";
+
+            AssetDatabase.CreateAsset(tmp, assetPath);
+            // Atlas and material are sub-assets and must be stored alongside, or the
+            // font renders as blank quads after a domain reload.
+            if (tmp.atlasTextures != null && tmp.atlasTextures.Length > 0)
+                AssetDatabase.AddObjectToAsset(tmp.atlasTextures[0], tmp);
+            if (tmp.material != null) AssetDatabase.AddObjectToAsset(tmp.material, tmp);
+            AssetDatabase.SaveAssets();
+            return tmp;
+        }
+
+        // --- sounds --------------------------------------------------------------
+
+        static CozySounds BindSounds()
+        {
+            const string path = "Assets/Follow/Resources/CozySounds.asset";
+            var sounds = AssetDatabase.LoadAssetAtPath<CozySounds>(path);
+            if (sounds == null)
+            {
+                sounds = ScriptableObject.CreateInstance<CozySounds>();
+                AssetDatabase.CreateAsset(sounds, path);
+            }
+
+            sounds.bookOpen = Clip("bookOpen");
+            sounds.bookClose = Clip("bookClose");
+            sounds.pageFlips = new[] { Clip("bookFlip1"), Clip("bookFlip2"), Clip("bookFlip3") }
+                .Where(c => c != null).ToArray();
+            // A cloth rustle is a better pencil-scratch than anything in the UI pack.
+            sounds.scratch = Clip("cloth1") ?? Clip("cloth2");
+
+            sounds.buttonPress = Clip("click1") ?? Clip("switch2") ?? Clip("bookPlace1");
+            sounds.buttonHover = Clip("rollover1") ?? Clip("rollover2");
+            sounds.chipPop = Clip("click2") ?? Clip("switch1");
+            sounds.shutter = Clip("bookPlace2") ?? Clip("doorClose_1");
+
+            sounds.footsteps = Enumerable.Range(0, 10)
+                .Select(i => Clip("footstep" + i.ToString("00")))
+                .Where(c => c != null).ToArray();
+
+            EditorUtility.SetDirty(sounds);
+            CozySounds.Active = sounds;
+            return sounds;
+        }
+
+        /// <summary>Finds a clip anywhere under the audio folder by exact file name.</summary>
+        static AudioClip Clip(string fileName)
+        {
+            foreach (var guid in AssetDatabase.FindAssets(fileName + " t:AudioClip", new[] { AudioDir }))
+            {
+                string p = AssetDatabase.GUIDToAssetPath(guid);
+                if (Path.GetFileNameWithoutExtension(p) != fileName) continue;
+                return AssetDatabase.LoadAssetAtPath<AudioClip>(p);
+            }
+            return null;
         }
     }
 }

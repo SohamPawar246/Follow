@@ -38,6 +38,12 @@ namespace Follow.Data
 
         [Header("Art")]
         public GameObject modelPrefab;
+        [Tooltip("Baked from the model's own clips, so an animal in the world is not a T-pose.")]
+        public RuntimeAnimatorController animator;
+        [Tooltip("A specimen wears this instead of the ambient planting colour, so it can be picked out.")]
+        public Color tint = Color.white;
+        [Tooltip("Uniform scale applied to the model. Set from measured bounds, not by eye.")]
+        public float worldScale = 0.2f;
         public Sprite silhouette;
 
         public bool AvailableOn(int day) => day >= firstAppearsOnDay;

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_PlayerSilhouette
+  m_Shader: {fileID: 4800000, guid: 729189b6efa097b42a608c0d8b15ce95, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _Outset: 0
+    - _Pulse: 0.1
+    - _RimPower: 2
+    m_Colors:
+    - _RimColor: {r: 1, g: 0.98, b: 0.9, a: 1}
+    - _XRayColor: {r: 1, g: 0.8, b: 0.36, a: 0.95}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

@@ -130,6 +130,45 @@ namespace Follow.UI
         }
 
         /// <summary>Flat 1x1 white, for washes and scrims.</summary>
+        /// <summary>
+        /// A fat rounded triangle, point up. The compass markers need something that reads
+        /// as a direction at twenty-four pixels, and a rotated square does not.
+        /// </summary>
+        public static Sprite Triangle(int size = 64)
+        {
+            string key = "tri_" + size;
+            if (Cache.TryGetValue(key, out var hit) && hit != null) return hit;
+
+            var tex = NewTex(size, size);
+            var px = new Color32[size * size];
+
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                // Normalised, origin at the base centre, apex at the top.
+                float u = (x + 0.5f) / size * 2f - 1f;
+                float v = (y + 0.5f) / size;
+
+                // Half-width shrinks to nothing at the apex, with a little belly.
+                float halfWidth = Mathf.Lerp(0.94f, 0.02f, Mathf.Pow(v, 0.85f));
+                float inside = halfWidth - Mathf.Abs(u);
+                // Feather by a pixel so the edge is not a staircase.
+                float coverage = Mathf.Clamp01(inside * size * 0.5f + 0.5f);
+                if (v < 0.06f) coverage *= Mathf.Clamp01(v / 0.06f * size * 0.1f);
+
+                px[y * size + x] = Alpha(coverage);
+            }
+
+            tex.SetPixels32(px);
+            tex.Apply();
+
+            var sprite = UnityEngine.Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+            sprite.name = key;
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+            Cache[key] = sprite;
+            return sprite;
+        }
+
         public static Sprite Solid()
         {
             if (Cache.TryGetValue("solid", out var hit) && hit != null) return hit;

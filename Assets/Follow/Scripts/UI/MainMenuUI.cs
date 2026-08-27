@@ -124,122 +124,16 @@ namespace Follow.UI
 
         // --- options -----------------------------------------------------------
 
-        public static bool ReducedMotion { get; private set; }
-
         void BuildOptions()
         {
-            _options = UIFactory.Stretch(UIFactory.Rect("OptionsLayer", _root));
-
-            var dim = UIFactory.Solid("Dim", _options, T.scrim);
-            UIFactory.Stretch(dim.rectTransform);
-
-            var panel = UIFactory.Card("Panel", _options, new Vector2(760f, 560f), T.cream, -0.8f);
-            panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
-            panel.anchoredPosition = Vector2.zero;
-
-            var tab = UIFactory.Card("Tab", panel, new Vector2(300f, 84f), T.honey, 2f);
-            UIFactory.Anchor(tab, new Vector2(0.5f, 1f), new Vector2(0f, 34f), new Vector2(300f, 84f));
-            var heading = UIFactory.Label("Heading", tab, "Options", T.headingSize - 6, T.cream,
-                TextAlignmentOptions.Center, true);
-            UIFactory.Stretch(heading.rectTransform);
-            TextStyles.Chunky(heading, T.outline, new Color(0f, 0f, 0f, 0.35f));
-
-            Slider(panel, "Sound", -150f, AudioListener.volume, v => AudioListener.volume = v);
-            Check(panel, "Fullscreen", -262f, Screen.fullScreen, v => Screen.fullScreen = v);
-            Check(panel, "Reduced motion", -348f, false, v => ReducedMotion = v);
-
-            var back = UIFactory.Button("Back", panel, "Back", () => ShowOptions(false),
-                new Vector2(300f, 88f), UIFactory.Tone.Primary);
-            UIFactory.Anchor(back.GetComponent<RectTransform>(), new Vector2(0.5f, 0f),
-                new Vector2(0f, 48f), new Vector2(300f, 88f));
-
-            _options.gameObject.SetActive(false);
-        }
-
-        void Slider(RectTransform parent, string label, float y, float value,
-            UnityEngine.Events.UnityAction<float> onChange)
-        {
-            var row = UIFactory.Rect(label, parent);
-            UIFactory.Anchor(row, new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(600f, 64f));
-
-            var text = UIFactory.Label("Label", row, label, T.bodySize, T.ink, TextAlignmentOptions.Left, true);
-            text.rectTransform.anchorMin = new Vector2(0f, 0f);
-            text.rectTransform.anchorMax = new Vector2(0.36f, 1f);
-            text.rectTransform.offsetMin = text.rectTransform.offsetMax = Vector2.zero;
-
-            var track = UIFactory.Rect("Slider", row);
-            track.anchorMin = new Vector2(0.36f, 0.5f);
-            track.anchorMax = new Vector2(1f, 0.5f);
-            track.pivot = new Vector2(0.5f, 0.5f);
-            track.offsetMin = new Vector2(0f, -20f);
-            track.offsetMax = new Vector2(0f, 20f);
-
-            var slider = track.gameObject.AddComponent<UnityEngine.UI.Slider>();
-
-            var outline = UIFactory.Shape("Outline", track, T.Chip, T.outline);
-            UIFactory.Stretch(outline.rectTransform);
-            var back = UIFactory.Shape("Track", track, T.Chip, T.paperDeep);
-            UIFactory.Stretch(back.rectTransform, T.outlineWidth * 0.7f);
-            back.raycastTarget = false;
-
-            var fillArea = UIFactory.Stretch(UIFactory.Rect("FillArea", track), T.outlineWidth * 0.7f);
-            var fill = UIFactory.Shape("Fill", fillArea, T.Chip, T.honey);
-            UIFactory.Stretch(fill.rectTransform);
-            fill.raycastTarget = false;
-
-            var handleArea = UIFactory.Stretch(UIFactory.Rect("HandleArea", track), 4f);
-            var handleOutline = UIFactory.Shape("HandleOutline", handleArea, T.Dot, T.outline, Image.Type.Simple);
-            handleOutline.rectTransform.sizeDelta = new Vector2(52f, 52f);
-            var handle = UIFactory.Shape("Handle", handleOutline.rectTransform, T.Dot, T.cream, Image.Type.Simple);
-            UIFactory.Stretch(handle.rectTransform, T.outlineWidth * 0.8f);
-            handle.raycastTarget = false;
-
-            slider.fillRect = fill.rectTransform;
-            slider.handleRect = handleOutline.rectTransform;
-            slider.targetGraphic = handleOutline;
-            slider.minValue = 0f;
-            slider.maxValue = 1f;
-            slider.SetValueWithoutNotify(value);
-            slider.onValueChanged.AddListener(onChange);
-        }
-
-        void Check(RectTransform parent, string label, float y, bool value,
-            UnityEngine.Events.UnityAction<bool> onChange)
-        {
-            var row = UIFactory.Rect(label, parent);
-            UIFactory.Anchor(row, new Vector2(0.5f, 1f), new Vector2(0f, y), new Vector2(600f, 62f));
-
-            var text = UIFactory.Label("Label", row, label, T.bodySize, T.ink, TextAlignmentOptions.Left, true);
-            text.rectTransform.anchorMin = new Vector2(0f, 0f);
-            text.rectTransform.anchorMax = new Vector2(0.75f, 1f);
-            text.rectTransform.offsetMin = text.rectTransform.offsetMax = Vector2.zero;
-
-            var box = UIFactory.Rect("Box", row);
-            UIFactory.Anchor(box, new Vector2(1f, 0.5f), Vector2.zero, new Vector2(62f, 62f));
-            box.pivot = new Vector2(1f, 0.5f);
-
-            var toggle = box.gameObject.AddComponent<Toggle>();
-            var outline = UIFactory.Shape("Outline", box, T.Card, T.outline);
-            UIFactory.Stretch(outline.rectTransform);
-            var back = UIFactory.Shape("Back", box, T.Card, T.paperDeep);
-            UIFactory.Stretch(back.rectTransform, T.outlineWidth * 0.8f);
-            back.raycastTarget = false;
-            var check = UIFactory.Shape("Check", box, T.Card, T.leaf);
-            UIFactory.Stretch(check.rectTransform, T.outlineWidth * 0.8f + 8f);
-            check.raycastTarget = false;
-
-            toggle.targetGraphic = outline;
-            toggle.graphic = check;
-            toggle.SetIsOnWithoutNotify(value);
-            toggle.onValueChanged.AddListener(onChange);
+            // The same card the pause menu shows. Two settings screens always drift apart.
+            _options = SettingsPanel.Build(_root, () => ShowOptions(false));
         }
 
         void ShowOptions(bool show)
         {
-            _options.gameObject.SetActive(show);
-            if (!show) return;
-            var panel = (RectTransform)_options.Find("Panel");
-            StartCoroutine(UITween.RiseIn(panel, UIFactory.Group(panel), T.easeIn, 40f));
+            if (show) SettingsPanel.Show(this, _options);
+            else _options.gameObject.SetActive(false);
         }
 
         // --- reveal & actions --------------------------------------------------

@@ -23,10 +23,19 @@ namespace Follow.Core
         [Header("You")]
         [Tooltip("Spent by walking and surveying, restored by eating and sleeping.")]
         [Range(0f, 1f)] public float energy = 1f;
+        [Tooltip("How well fed you are. Empties over a day; a ration refills it.")]
+        [Range(0f, 1f)] public float nourishment = 1f;
+        [Tooltip("Empties faster than food. Any pond fills it instantly.")]
+        [Range(0f, 1f)] public float hydration = 1f;
 
         [Header("Camp")]
         public int sticks = 0;
         public int food = 0;
+
+        [Tooltip("Set once the fire has been built. The plot never comes back.")]
+        public bool campfireBuilt;
+        [Tooltip("Seconds of burn left. Zero means the fire is out, not that it is gone.")]
+        public float campfireFuel;
 
         [Header("Rules")]
         [Tooltip("The dog cannot be lost before this day. Keeps a five-minute demo safe (GDD).")]
@@ -38,6 +47,14 @@ namespace Follow.Core
 
         public event Action<int> DayChanged;
         public event Action<float> BondChanged;
+
+        /// <summary>
+        /// Raised whenever a counter moves, so the interface can float the number where
+        /// the player is already looking. Nothing should change sticks or food directly.
+        /// </summary>
+        public event Action<Track, int> Gained;
+
+        public enum Track { Sticks, Food, Nourishment, Hydration, Energy, DogFed }
 
         public bool InGracePeriod => day <= graceDays;
 
@@ -65,9 +82,34 @@ namespace Follow.Core
             sticks = 0;
             food = 0;
             energy = 1f;
+            nourishment = 1f;
+            hydration = 1f;
+            campfireBuilt = false;
+            campfireFuel = 0f;
             album.Clear();
             DayChanged?.Invoke(day);
             BondChanged?.Invoke(bond);
+        }
+
+        public void AddSticks(int amount)
+        {
+            if (amount == 0) return;
+            sticks = Mathf.Max(0, sticks + amount);
+            Gained?.Invoke(Track.Sticks, amount);
+        }
+
+        public void AddFood(int amount)
+        {
+            if (amount == 0) return;
+            food = Mathf.Max(0, food + amount);
+            Gained?.Invoke(Track.Food, amount);
+        }
+
+        /// <summary>Announces a change to a bar as a percentage, for the floating number.</summary>
+        public void Announce(Track track, float delta01)
+        {
+            int shown = Mathf.RoundToInt(delta01 * 100f);
+            if (shown != 0) Gained?.Invoke(track, shown);
         }
 
         public void AdvanceDay()
@@ -116,6 +158,9 @@ namespace Follow.Core
             };
             return true;
         }
+
+        /// <summary>Throws a photograph away. There is no undo, which is why it is asked twice.</summary>
+        public bool Remove(string speciesId) => entries.Remove(speciesId);
 
         public bool Has(string speciesId) => entries.ContainsKey(speciesId);
         public AlbumEntry Get(string speciesId) => entries.TryGetValue(speciesId, out var e) ? e : null;

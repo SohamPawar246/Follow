@@ -119,7 +119,11 @@ namespace Follow.UI
         {
             var label = Rect(name, parent).gameObject.AddComponent<TextMeshProUGUI>();
 
-            var font = handwritten && T.handFont != null ? T.handFont : T.uiFont;
+            // Baloo is the display face and is unreadable as a paragraph; Nunito carries
+            // body text; Patrick Hand is the surveyor's own voice.
+            var font = handwritten ? T.handFont
+                     : bold ? T.uiFont
+                     : (T.bodyFont != null ? T.bodyFont : T.uiFont);
             if (font != null) label.font = font;
 
             label.text = text;
@@ -299,8 +303,10 @@ namespace Follow.UI
         public void Set(string value)
         {
             if (_label == null || _label.text == value) return;
+            bool first = string.IsNullOrEmpty(_label.text);
             _label.text = value;
             _pop = 1f;
+            if (!first) CozySounds.Play(CozySounds.Active?.chipPop, 0.45f);
         }
 
         void Update()
@@ -367,9 +373,20 @@ namespace Follow.UI
             transform.localScale = new Vector3(next, next, 1f);
         }
 
-        public void OnPointerEnter(PointerEventData e) => _hover = true;
+        public void OnPointerEnter(PointerEventData e)
+        {
+            _hover = true;
+            if (interactable) CozySounds.Play(CozySounds.Active?.buttonHover, 0.5f);
+        }
+
         public void OnPointerExit(PointerEventData e) { _hover = false; _down = false; }
-        public void OnPointerDown(PointerEventData e) => _down = true;
+
+        public void OnPointerDown(PointerEventData e)
+        {
+            _down = true;
+            if (interactable) CozySounds.Play(CozySounds.Active?.buttonPress, 0.8f);
+        }
+
         public void OnPointerUp(PointerEventData e) => _down = false;
         public void OnPointerClick(PointerEventData e) { if (interactable) _onClick?.Invoke(); }
     }
