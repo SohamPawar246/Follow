@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ad36df5cc427d540ad3337b62d8b815, type: 3}
+  m_Name: SP_sambar
+  m_EditorClassIdentifier: Assembly-CSharp::Follow.Data.SpeciesData
+  id: sambar
+  commonName: Sambar
+  scientificName: Rusa unicolor
+  kind: 0
+  shotType: 1
+  habitat: Dense hill forest, feeding at the margins near dusk.
+  diet: Grass, foliage, fallen fruit and bark.
+  fieldNote: Enormous, and completely silent until it decides not to be.
+  firstAppearsOnDay: 2
+  rarity: 0.45
+  wariness: 18
+  modelPrefab: {fileID: 919132149155446097, guid: eab9641f0f066ad4db8a0935d30f21b1, type: 3}
+  silhouette: {fileID: 0}

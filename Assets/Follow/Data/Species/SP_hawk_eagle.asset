@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ad36df5cc427d540ad3337b62d8b815, type: 3}
+  m_Name: SP_hawk_eagle
+  m_EditorClassIdentifier: Assembly-CSharp::Follow.Data.SpeciesData
+  id: hawk_eagle
+  commonName: Mountain Hawk-Eagle
+  scientificName: Nisaetus nipalensis
+  kind: 0
+  shotType: 0
+  habitat: Broadleaf forest on steep hill country, hunting below the canopy.
+  diet: Pheasants, hares, squirrels.
+  fieldNote: Crested, and far bigger than the photographs prepare you for.
+  firstAppearsOnDay: 7
+  rarity: 0.9
+  wariness: 28
+  modelPrefab: {fileID: 919132149155446097, guid: 7cfa9f1b4022d9c469a8e0657636e8cc, type: 3}
+  silhouette: {fileID: 0}

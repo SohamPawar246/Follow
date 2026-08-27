@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ad36df5cc427d540ad3337b62d8b815, type: 3}
+  m_Name: SP_tree_fern
+  m_EditorClassIdentifier: Assembly-CSharp::Follow.Data.SpeciesData
+  id: tree_fern
+  commonName: Tree Fern
+  scientificName: Cyathea gigantea
+  kind: 1
+  shotType: 2
+  habitat: Damp shaded gullies and streamsides.
+  diet: 
+  fieldNote: Older than the trees around it, as a lineage. It looks it, too.
+  firstAppearsOnDay: 1
+  rarity: 0.3
+  wariness: 0
+  modelPrefab: {fileID: 0}
+  silhouette: {fileID: 0}
