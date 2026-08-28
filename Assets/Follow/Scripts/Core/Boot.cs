@@ -19,6 +19,7 @@ namespace Follow.Core
         IEnumerator Start()
         {
             GameState.Ensure();
+            Watchdog.Ensure();
             var flow = SceneFlow.Ensure();
             flow.SnapToBlack();
 

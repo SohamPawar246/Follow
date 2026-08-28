@@ -48,12 +48,22 @@ CC-BY, not CC0. Record the model name, author and licence for each one you actua
 
 ## AI tool usage
 
-| Tool | Used for |
-|---|---|
-| Claude (Anthropic) | Game design document, C# gameplay and UI code, editor tooling, species field-guide copy |
+| Tool | Used for | Where it appears |
+|---|---|---|
+| Google Veo 3 | Studio logo intro video | Plays on launch, before the main menu |
+| Google Veo 3 | Story panel imagery | The opening story sequence |
+| ChatGPT (image model) | Story panel imagery | The opening story sequence |
 
-No AI-generated images, audio, or 3D models are used in this build.
-_(If that changes, add the tool, the prompt intent, and where the output appears.)_
+**Generated content in this build:** the studio logo intro and the story panels are
+AI generated. Everything else — 3D models, textures, audio — is either third-party CC0
+work listed above or synthesised procedurally in code at runtime.
+
+No AI-generated 3D models are used. No AI-generated audio is used; the ambience, music,
+whistle and the dog's fallback voice are written as code that generates AudioClips at
+load, which is procedural synthesis rather than a generative model.
+
+These credits are also shown in game, on the **Credits** card reachable from the main
+menu. **If you add anything here, add it there too** — see `CreditsPanel.Left()` and `Right()`.
 
 ---
 

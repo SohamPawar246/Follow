@@ -217,7 +217,10 @@ namespace Follow.EditorTools
             flame.transform.localPosition = new Vector3(0f, 0.3f, 0f);
 
             var ps = flame.AddComponent<ParticleSystem>();
-            ParticleArt.Dress(ps, true);
+            // Dressed at load, not here. A baked scene cannot hold ParticleArt's
+            // materials - they are HideAndDontSave - so a reference written now is
+            // magenta by the time anybody opens the scene.
+            flame.AddComponent<ParticleDress>().additive = true;
 
             var main = ps.main;
             main.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 1.3f);
@@ -269,7 +272,7 @@ namespace Follow.EditorTools
             go.transform.localPosition = new Vector3(0f, 2f, 0f);
 
             var ps = go.AddComponent<ParticleSystem>();
-            ParticleArt.Dress(ps, true);
+            go.AddComponent<ParticleDress>().additive = true;
 
             var main = ps.main;
             main.startLifetime = new ParticleSystem.MinMaxCurve(4f, 9f);

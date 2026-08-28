@@ -148,6 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd344d408768cdb41ac97bd9a4fcbfec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Follow.Core.Boot
+  showLogo: 1
 --- !u!4 &1828923076
 Transform:
   m_ObjectHideFlags: 0

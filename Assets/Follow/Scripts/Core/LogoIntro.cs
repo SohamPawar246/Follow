@@ -31,6 +31,11 @@ namespace Follow.Core
         [Tooltip("Seconds the drawn card holds for when there is no video.")]
         public float cardSeconds = 2.6f;
 
+        [Tooltip("Name drawn on the fallback card. Left empty, only the mark is drawn - "
+               + "which is the right default, because inventing a studio name for "
+               + "somebody is worse than showing none.")]
+        public string studioName = "";
+
         [Tooltip("Longest the intro may run before it gives up and moves on.")]
         public float patience = 20f;
 
@@ -46,14 +51,36 @@ namespace Follow.Core
         {
             Build();
 
-            var found = clip != null ? clip : FromResources();
-            string streaming = Path.Combine(Application.streamingAssetsPath, StreamingName);
+            // WebGL cannot play a VideoClip asset at all - it only understands a URL -
+            // so in a browser the streaming copy is tried first and the drawn card is the
+            // honest fallback. Everywhere else the imported clip is simpler and safer.
+            bool browser = Application.platform == RuntimePlatform.WebGLPlayer;
+            string streaming = Application.streamingAssetsPath + "/" + StreamingName;
 
-            if (found != null) yield return Video(found, null);
-            else if (File.Exists(streaming)) yield return Video(null, streaming);
+            var found = clip != null ? clip : FromResources();
+
+            if (browser)
+            {
+                if (HasStreamingCopy(streaming)) yield return Video(null, streaming);
+                else yield return Card();
+            }
+            else if (found != null) yield return Video(found, null);
+            else if (HasStreamingCopy(streaming)) yield return Video(null, streaming);
             else yield return Card();
 
             if (_canvas != null) Destroy(_canvas.gameObject);
+        }
+
+        /// <summary>
+        /// Whether a StreamingAssets copy exists. There is no real filesystem under
+        /// WebGL, so the check is skipped there and the player is left to report a
+        /// missing file through its error callback.
+        /// </summary>
+        static bool HasStreamingCopy(string path)
+        {
+            if (Application.platform == RuntimePlatform.WebGLPlayer) return true;
+            try { return File.Exists(path); }
+            catch { return false; }
         }
 
         /// <summary>
@@ -217,12 +244,15 @@ namespace Follow.Core
                 toe.raycastTarget = false;
             }
 
-            var name = UIFactory.Label("Name", holder, "RESENGAL STUDIO", 54, T.cream,
-                TextAlignmentOptions.Center, true);
-            UIFactory.Anchor(name.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -30f),
-                new Vector2(880f, 72f));
-            name.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-            name.characterSpacing = 12f;
+            if (!string.IsNullOrWhiteSpace(studioName))
+            {
+                var name = UIFactory.Label("Name", holder, studioName.ToUpperInvariant(), 54,
+                    T.cream, TextAlignmentOptions.Center, true);
+                UIFactory.Anchor(name.rectTransform, new Vector2(0.5f, 0.5f),
+                    new Vector2(0f, -30f), new Vector2(880f, 72f));
+                name.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                name.characterSpacing = 12f;
+            }
 
             var line = UIFactory.Shape("Rule", holder, T.Chip, new Color(1f, 1f, 1f, 0.25f));
             UIFactory.Anchor(line.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -86f),

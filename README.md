@@ -40,7 +40,7 @@ There is no ending. There is a journal that fills up.
 | **G** | Share your food with her |
 | **R** | Eat a ration |
 | **J** *or* **Tab** | Open the field journal |
-| **Esc** | Pause and options |
+| **Esc** | Pause and options, and closes the credits card |
 
 Water is free: stand at any pond and the bar refills itself.
 
@@ -83,7 +83,30 @@ Boot  →  MainMenu  →  Story  →  Game
 plays on launch, letterboxed to its own aspect and skippable with any key. With no video
 present it falls back to a drawn title card, so the boot sequence cannot break.
 
+**For WebGL there is a second copy** at `Assets/StreamingAssets/StudioLogo.mp4`. A browser
+build cannot play an imported `VideoClip` at all — Unity's WebGL video path only
+understands a URL — so in a browser the intro reads the StreamingAssets file instead. If
+you replace the logo, replace both, or the desktop and web builds will disagree.
+
 Set `Boot.showLogo = false` to skip it while working on something else.
+
+---
+
+## Building for the web
+
+Three things bite in a browser build, and all three are already handled — this is a note
+so they do not get undone.
+
+- **The particle shader.** `Follow/SoftParticle` is only ever used by materials built at
+  runtime, so nothing saved in the project points at it and the build strips it — every
+  particle then draws magenta. It is listed in **Project Settings → Graphics → Always
+  Included Shaders** to prevent that.
+- **Particles are dressed at load, not at bake time.** `ParticleArt`'s materials are
+  `HideAndDontSave` and cannot be written into a scene. Anything placed by an editor
+  script carries a `ParticleDress` component instead, which builds the material on the
+  machine that is going to draw it. Do not call `ParticleArt.Dress` from editor code.
+- **No Quit button.** A browser tab cannot close itself, so the menu hides that row on
+  WebGL rather than offering a button that visibly does nothing.
 
 ---
 
@@ -139,6 +162,14 @@ rather than the same file at two volumes.
 **Photographs are real renders.** The album stores an actual capture of the actual scene
 from a second camera, so a shot at dusk is dark because it was dusk.
 
+**Nothing may wedge the game.** Three things can take control away — a movement hold, the
+modal counter, and the clock — and each is taken and given back by a coroutine that could
+throw in between. `PlayerMover` breaks its own stuck holds after twenty seconds, and
+`Core/Watchdog` covers the other two: if the modal counter is above zero with no modal
+actually on screen, or time is stopped with no pause menu open, it says so in the console
+and corrects it after four seconds. It only ever acts when the flag and the interface
+disagree, so it cannot interrupt a card somebody is still reading.
+
 ### Layout
 
 ```
@@ -181,4 +212,13 @@ Honest list, roughly by how much they matter.
 ## Credits
 
 Third-party assets, licences and AI tool disclosure are in **[CREDITS.md](CREDITS.md)**,
-which is the file the jam actually requires. Keep it current.
+which is the file the jam actually requires.
+
+The same information is **in the game**, on the Credits card reachable from the main
+menu — a text file in a repository is not a declaration anybody playing the build will
+ever see. The two are kept in step by hand: if you import something, it goes in
+`CREDITS.md` *and* in `CreditsPanel.Left()` / `Right()`.
+
+The studio logo intro and the story panels are AI generated; everything else is either
+third-party CC0 work or synthesised procedurally at runtime. The full breakdown is in
+both places.

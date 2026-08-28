@@ -20,6 +20,10 @@ namespace Follow.UI
         static CozyTheme T => CozyTheme.Active;
 
         RectTransform _root;
+
+        /// <summary>Whether the card is on screen. The watchdog asks, so a leaked modal
+        /// push can be told apart from a card the player is still looking at.</summary>
+        public bool IsOpen => _root != null && _root.gameObject.activeSelf;
         RectTransform _card;
         RawImage _print;
         TextMeshProUGUI _title;

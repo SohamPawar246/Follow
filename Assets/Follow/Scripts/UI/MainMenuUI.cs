@@ -98,8 +98,13 @@ namespace Follow.UI
             Row(stack, "Play", hasRun ? "Continue" : "Begin the survey", OnPlay, UIFactory.Tone.Primary, 470f);
             if (hasRun) Row(stack, "NewRun", "Start over", OnNewRun, UIFactory.Tone.Quiet, 400f);
             Row(stack, "Album", "Album", OnAlbum, UIFactory.Tone.Leafy, 420f);
+            Row(stack, "Credits", "Credits", OnCredits, UIFactory.Tone.Secondary, 380f);
             Row(stack, "Options", "Options", () => ShowOptions(true), UIFactory.Tone.Secondary, 400f);
-            Row(stack, "Quit", "Quit", OnQuit, UIFactory.Tone.Quiet, 340f);
+
+            // A browser tab cannot be closed from inside itself, so offering to do it is
+            // a button that visibly does nothing.
+            if (Application.platform != RuntimePlatform.WebGLPlayer)
+                Row(stack, "Quit", "Quit", OnQuit, UIFactory.Tone.Quiet, 340f);
         }
 
         int _row;
@@ -168,6 +173,18 @@ namespace Follow.UI
         }
 
         JournalBook _album;
+        CreditsPanel _credits;
+
+        /// <summary>
+        /// The credits, on a card. Built on demand, because most sessions never open it.
+        /// </summary>
+        void OnCredits()
+        {
+            if (_credits == null) _credits = CreditsPanel.Create(_root);
+            if (_credits.IsOpen) _credits.Hide();
+            else _credits.Show();
+        }
+
 
         /// <summary>
         /// The album, from the menu. The same book the game uses, built on demand.
