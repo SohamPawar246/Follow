@@ -167,7 +167,22 @@ namespace Follow.UI
             SceneFlow.Instance.Go(SceneFlow.Story);
         }
 
-        void OnAlbum() => Debug.Log("Album requested from the menu.");
+        JournalBook _album;
+
+        /// <summary>
+        /// The album, from the menu. The same book the game uses, built on demand.
+        ///
+        /// This was a Debug.Log. It reads the album out of the persistent game state, so
+        /// on a fresh install it opens on an empty field guide - which is the right thing
+        /// to show somebody deciding whether to play: here is everything out there, and
+        /// you have none of it yet.
+        /// </summary>
+        void OnAlbum()
+        {
+            if (_album == null) _album = JournalBook.Create(_root);
+            if (_album.IsOpen) _album.Close();
+            else _album.Open();
+        }
 
         void OnQuit()
         {

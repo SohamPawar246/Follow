@@ -468,6 +468,34 @@ namespace Follow.UI
                     (1f + _hover * 0.12f + Mathf.Sin(_ping * Mathf.PI) * 0.22f);
             if (_ring != null)
                 _ring.color = Color.Lerp(CozyTheme.Active.outline, CozyTheme.Active.honey, _hover);
+
+            // A key as well as the badge. Calling your dog is a verb you use constantly
+            // and constantly reaching for the mouse to do it breaks the walk.
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null && kb.qKey.wasPressedThisFrame && !UIModal.Any) Blow();
+        }
+
+        /// <summary>
+        /// Whistle, from either the badge or the key.
+        ///
+        /// She always answers something now. The old version could return a flat refusal,
+        /// and since a fresh run starts below the bond it required, the very first whistle
+        /// a player ever blows was guaranteed to do nothing at all.
+        /// </summary>
+        void Blow()
+        {
+            _ping = 1f;
+            Follow.Game.Soundscape.Instance?.Whistle();
+
+            var dog = Follow.Dog.DogBrain.Instance;
+            if (dog == null) return;
+
+            bool pointing = dog.State == Follow.Dog.DogState.Point;
+            dog.Whistle();
+
+            GameHud.Instance?.Say(pointing
+                ? "she barks back - she is standing over something"
+                : dog.DistanceToPlayer > 30f ? "she is on her way" : "she trots over");
         }
 
         public void OnPointerEnter(PointerEventData e)
@@ -478,15 +506,7 @@ namespace Follow.UI
 
         public void OnPointerExit(PointerEventData e) => _hoverState = false;
 
-        public void OnPointerClick(PointerEventData e)
-        {
-            _ping = 1f;
-            var dog = Follow.Dog.DogBrain.Instance;
-            if (dog == null) return;
-
-            if (dog.Whistle()) GameHud.Instance?.Say("she is coming");
-            else GameHud.Instance?.Say("she pretends not to hear you");
-        }
+        public void OnPointerClick(PointerEventData e) => Blow();
     }
 
     /// <summary>

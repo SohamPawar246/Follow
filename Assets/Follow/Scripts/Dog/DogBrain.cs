@@ -59,11 +59,32 @@ namespace Follow.Dog
         public Vector2 checkInByBond = new Vector2(999f, 7f);
 
         [Header("Scent")]
-        public float scentSweep = 16f;
-        [Tooltip("Seconds nose-down before it commits and calls you.")]
-        public float scentWorkTime = 2.2f;
+        [Tooltip("How far she will set off after something. This is her job, so it is "
+               + "deliberately much wider than the radius she idly wanders in.")]
+        public float huntRadius = 58f;
+        [Tooltip("Seconds nose-down at the find before she commits and calls you.")]
+        public float scentWorkTime = 1.8f;
         [Tooltip("How close you must come for the find to count.")]
-        public float findRadius = 6f;
+        public float findRadius = 7f;
+        [Tooltip("Seconds between the barks she calls you in with.")]
+        public float callInterval = 4.5f;
+
+        [Header("Voice")]
+        [Tooltip("Shortest gap between any two barks, whatever the reason for them. "
+               + "Every bark in the game goes through this, so no combination of "
+               + "circumstances can produce a dog that never shuts up.")]
+        public float barkFloor = 6.5f;
+        [Tooltip("How many times she calls you to one find before accepting you did not hear.")]
+        public int callsPerFind = 5;
+
+        [Header("Recall")]
+        [Tooltip("Seconds she stays with you after a whistle, at low bond and at high.")]
+        public Vector2 recallByBond = new Vector2(7f, 14f);
+
+        [Tooltip("Seconds after finishing with one find before she will take up another. "
+               + "Without this she is stood over something almost permanently, and a dog "
+               + "that is always calling you is a dog you stop listening to.")]
+        public float findCooldown = 16f;
 
         [Header("Errands")]
         [Tooltip("Bond at which it starts bringing sticks back unprompted.")]
@@ -84,6 +105,7 @@ namespace Follow.Dog
         public event Action<DogState, DogState> StateChanged;
         public event Action<ScentPoint> Pointed;
         public event Action Barked;
+        public event Action Whistled;
         public event Action CheckedIn;
 
         CharacterController _cc;
@@ -99,6 +121,9 @@ namespace Follow.Dog
         float _errandTimer;
         float _barkTimer;
         float _sniffPause;
+        int _callsMade;
+        float _recallTimer;
+        float _findCooldown;
         readonly List<ScentPoint> _ignored = new List<ScentPoint>();
 
         Follow.World.Pickup _errand;
@@ -111,6 +136,9 @@ namespace Follow.Dog
 
         float Bond => GameState.Instance != null ? GameState.Instance.bond : 0.15f;
         float Energy => GameState.Instance != null ? GameState.Instance.dogEnergy : 1f;
+
+        /// <summary>She has been whistled in and is staying with you for the moment.</summary>
+        public bool Recalled => _recallTimer > 0f;
 
         /// <summary>How far it will voluntarily go. The single most legible expression of bond.</summary>
         public float RangeRadius => Mathf.Lerp(rangeByBond.x, rangeByBond.y, Bond) * Mathf.Lerp(0.55f, 1f, Energy);
@@ -153,6 +181,8 @@ namespace Follow.Dog
         {
             _errandTimer -= dt;
             _barkTimer -= dt;
+            _recallTimer -= dt;
+            _findCooldown -= dt;
 
             switch (State)
             {
@@ -166,6 +196,23 @@ namespace Follow.Dog
                 case DogState.Lead: ThinkLead(dt); break;
                 case DogState.Rest: ThinkRest(dt); break;
             }
+        }
+
+        /// <summary>
+        /// The only way anything in here makes a sound.
+        ///
+        /// Barking used to be raised from seven different places, each with its own idea
+        /// of a decent interval, and the shortest of them won by simply happening most
+        /// often. The result was a dog barking every two seconds at whatever she was
+        /// nearest to, which reads as broken rather than as communicative. One gate, one
+        /// floor: a bark now costs at least <see cref="barkFloor"/> seconds of silence,
+        /// so the ones that survive are worth turning your head for.
+        /// </summary>
+        void Bark(float gap)
+        {
+            if (_barkTimer > 0f) return;
+            _barkTimer = Mathf.Max(barkFloor, gap);
+            Barked?.Invoke();
         }
 
         void ThinkIdle(float dt)
@@ -183,12 +230,21 @@ namespace Follow.Dog
             if (_player == null) return;
 
             // Hold station a little off to the side rather than treading on their heels.
+            // When she has been called she comes round to your side and faces the way you
+            // are facing, which is what a dog answering a whistle actually looks like.
             Vector3 side = _player.transform.right * (Mathf.PerlinNoise(Time.time * 0.2f, 4.1f) - 0.5f) * 3f;
-            _target = _player.transform.position - _player.transform.forward * personalSpace + side;
+            _target = Recalled
+                ? _player.transform.position + _player.transform.right * 1.4f
+                  + _player.transform.forward * 0.6f
+                : _player.transform.position - _player.transform.forward * personalSpace + side;
 
             if (TryCatchScent()) return;
 
-            // Once it is comfortable again it goes back to its own business.
+            // Called in: she stays until the recall lapses. Without this she would go
+            // straight back to work on the next frame and the whistle would look ignored.
+            if (Recalled) return;
+
+            // Once she is comfortable again she goes back to her own business.
             if (DistanceToPlayer < personalSpace + 1.5f && _stateTime > 1.5f && Energy > 0.3f)
                 Switch(DogState.Range);
         }
@@ -228,6 +284,17 @@ namespace Follow.Dog
             _target = Find.transform.position;
             float d = Vector3.Distance(transform.position, Find.transform.position);
 
+            // A long trail is not a straight line. Give up rather than jog forever at
+            // something she cannot actually reach.
+            if (_stateTime > 40f)
+            {
+                _ignored.Add(Find);
+                Find = null;
+                _findCooldown = findCooldown * 0.5f;
+                Switch(DogState.Range);
+                return;
+            }
+
             if (d > 2.5f) return;
 
             _scentTimer += dt;
@@ -236,6 +303,29 @@ namespace Follow.Dog
             Find.Reveal();
             Switch(DogState.Point);
             Pointed?.Invoke(Find);
+
+            Follow.UI.GameHud.Instance?.Say(DistanceToPlayer > 26f
+                ? "she is barking, away to the " + Heading(Find.transform.position)
+                : "she has found something - go and look");
+        }
+
+        /// <summary>
+        /// Which way to walk, in words.
+        ///
+        /// No on-screen marker: a floating arrow turns a forest into a checklist. A
+        /// compass word in a sentence you hear once is the same information without ever
+        /// taking your eye off the trees.
+        /// </summary>
+        string Heading(Vector3 at)
+        {
+            if (_player == null) return "trees";
+            Vector3 to = at - _player.transform.position;
+            float degrees = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+            if (degrees < 0f) degrees += 360f;
+
+            string[] names = { "north", "north-east", "east", "south-east",
+                               "south", "south-west", "west", "north-west" };
+            return names[Mathf.RoundToInt(degrees / 45f) % 8];
         }
 
         void ThinkPoint(float dt)
@@ -245,17 +335,26 @@ namespace Follow.Dog
             _target = transform.position;   // frozen: this is the whole tell
             _pointTimer += dt;
 
-            // Bark on a rhythm so you can find it by ear alone.
-            if (_barkTimer <= 0f)
-            {
-                _barkTimer = 2.2f;
-                Barked?.Invoke();
-            }
-
             if (_player != null && DistanceToPlayer < findRadius)
             {
-                // You made it. The subject stays up for the photograph.
+                // You made it. The subject stays up for the photograph, and she stops
+                // shouting: being barked at from two metres away is not a cue, it is a
+                // dog with a problem. This check used to sit below the bark, so she
+                // carried on calling you to a thing you were already standing next to.
                 return;
+            }
+
+            // Bark on a rhythm so you can find her by ear alone, and give up calling
+            // after a while rather than sounding an alarm until her patience expires.
+            if (_callsMade < callsPerFind && _barkTimer <= 0f)
+            {
+                _callsMade++;
+                Bark(DistanceToPlayer > 30f ? callInterval : callInterval * 1.6f);
+
+                // A reminder in words, once, well into the wait.
+                if (_callsMade == 4 && DistanceToPlayer > 22f)
+                    Follow.UI.GameHud.Instance?.Say("still barking, to the "
+                        + Heading(transform.position));
             }
 
             if (_pointTimer > Find.patience)
@@ -264,6 +363,7 @@ namespace Follow.Dog
                 Find.Consume();
                 _ignored.Add(Find);
                 Find = null;
+                _findCooldown = findCooldown;
                 Switch(DogState.Range);
             }
         }
@@ -282,8 +382,10 @@ namespace Follow.Dog
             Follow.World.Pickup best = null;
             float bestDistance = 26f;
 
-            foreach (var pickup in FindObjectsByType<Follow.World.Pickup>(FindObjectsSortMode.None))
+            var lying = Follow.World.Pickup.Active;
+            for (int i = 0; i < lying.Count; i++)
             {
+                var pickup = lying[i];
                 if (pickup == null) continue;
                 float d = Vector3.Distance(transform.position, pickup.transform.position);
                 if (d >= bestDistance) continue;
@@ -316,7 +418,8 @@ namespace Follow.Dog
             _errand.TakenByDog();
             _errand = null;
 
-            if (_barkTimer <= 0f) { _barkTimer = 2f; Barked?.Invoke(); }
+            // No bark. She has a stick in her mouth, and announcing every twig she picks
+            // up was a large share of the noise.
             Switch(DogState.Deliver);
         }
 
@@ -362,7 +465,10 @@ namespace Follow.Dog
         {
             _floraTimer -= dt;
             if (_floraTimer > 0f) return;
-            _floraTimer = 1.5f;
+            _floraTimer = 2f;
+
+            // She is already working on something better than this.
+            if (Find != null || _player == null) return;
 
             Follow.Game.PhotoSubject nearest = null;
             float best = 11f;
@@ -382,14 +488,23 @@ namespace Follow.Dog
 
             if (nearest == null) return;
 
+            // Two tests, and they are what separates a find from noise. She has to be
+            // nearer it than you are - otherwise she is not finding it, she is barking
+            // at something you are already looking at - and you have to be far enough
+            // away for the news to be worth anything. Without these she announced every
+            // flowering plant you walked past, which is the blind barking.
+            float yours = Vector3.Distance(_player.transform.position, nearest.AimPoint);
+            if (yours < 14f || best > yours) return;
+
             _announced.Add(nearest);
             LookTarget = nearest.transform;
-            _floraTimer = 6f;
+            CheckedIn?.Invoke();
+            _floraTimer = 16f;
 
             if (_barkTimer > 0f) return;
-            _barkTimer = 2.4f;
-            Barked?.Invoke();
-            Follow.UI.GameHud.Instance?.Say("she has found something");
+            Bark(7f);
+            Follow.UI.GameHud.Instance?.Say("she has found something, to the "
+                + Heading(nearest.AimPoint));
         }
 
         void ThinkLead(float dt)
@@ -403,7 +518,7 @@ namespace Follow.Dog
             if (DistanceToPlayer > 9f)
             {
                 _target = transform.position;
-                if (_barkTimer <= 0f) { _barkTimer = 2.6f; Barked?.Invoke(); }
+                Bark(5f);
             }
 
             if (Vector3.Distance(transform.position, camp.transform.position) < 4f)
@@ -445,17 +560,34 @@ namespace Follow.Dog
         }
 
         /// <summary>
-        /// The core of the whole design: sweep for scent points the player cannot see.
-        /// Range and willingness both scale with bond, so a neglected dog simply finds less.
+        /// The core of the whole design: pick up something the player cannot see and go
+        /// after it. Range and willingness both scale with bond, so a neglected dog
+        /// simply finds less.
+        ///
+        /// She used to need to be inside a subject's own scent radius - eleven to twenty
+        /// metres - before she reacted to it at all, while she only ever wandered about
+        /// fourteen metres from the player and subjects were seeded from thirty-eight
+        /// metres out. The two circles could not meet, so the whole forest of animals sat
+        /// there undiscovered. She now sets off from a long way out, which is the entire
+        /// point of having a dog: she covers ground you do not.
         /// </summary>
         bool TryCatchScent()
         {
             if (State == DogState.Scent || State == DogState.Point) return false;
             if (Energy < 0.15f) return false;
+            // She was just called. Wandering off after a scent one frame later is the
+            // single reason whistling appeared to do nothing whatsoever.
+            if (Recalled) return false;
+
+            // She has just finished with one. Measured over ordinary play she was stood
+            // over a find for three quarters of every minute, which is why she seemed to
+            // bark without stopping - the barking was the symptom and this is the cause.
+            // A working dog casts about between finds; she does not queue them up.
+            if (_findCooldown > 0f) return false;
 
             ScentPoint best = null;
             float bestScore = 0f;
-            float sweep = scentSweep * Mathf.Lerp(0.6f, 1.3f, Bond);
+            float sweep = huntRadius * Mathf.Lerp(0.65f, 1.25f, Bond);
 
             foreach (var point in ScentPoint.Active)
             {
@@ -463,11 +595,10 @@ namespace Follow.Dog
                 if (_ignored.Contains(point)) continue;
 
                 float d = Vector3.Distance(transform.position, point.transform.position);
-                float reach = Mathf.Min(sweep, point.scentRadius);
-                if (d > reach) continue;
+                if (d > sweep) continue;
 
-                // Nearer is better; so is a subject it is confident enough to bother with.
-                float score = (1f - d / reach) * (1.2f - point.bondRequired);
+                // Nearer is better; so is a subject she is confident enough to bother with.
+                float score = (1f - d / sweep) * (1.2f - point.bondRequired);
                 if (score <= bestScore) continue;
                 bestScore = score;
                 best = point;
@@ -479,6 +610,10 @@ namespace Follow.Dog
             _scentTimer = 0f;
             _pointTimer = 0f;
             Switch(DogState.Scent);
+
+            // One bark on picking up the trail, so setting off is something you notice
+            // rather than the dog silently vanishing into the trees.
+            Bark(6f);
             return true;
         }
 
@@ -580,12 +715,17 @@ namespace Follow.Dog
                 case DogState.Point: return 0f;
 
                 case DogState.Scent:
-                    // Nose-down work is deliberate, not a sprint.
-                    return distance > 6f ? trotSpeed : walkSpeed;
+                    // Covering ground to reach a trail is a working trot or better; the
+                    // last few metres are nose-down and deliberate.
+                    return distance > 22f ? runSpeed * 0.85f
+                         : distance > 5f ? trotSpeed : walkSpeed;
 
                 case DogState.Follow:
                     if (distance < personalSpace) return 0f;
-                    // Hurries when it has fallen behind, ambles when it is close.
+                    // Called in, she comes at a proper clip - a dog that answers a
+                    // whistle by ambling over has not really answered it.
+                    if (Recalled) return distance > personalSpace * 1.5f ? runSpeed * 0.9f : walkSpeed;
+                    // Otherwise: hurries when she has fallen behind, ambles when close.
                     return distance > followLeash ? runSpeed
                          : distance > personalSpace * 2f ? trotSpeed : walkSpeed;
 
@@ -609,7 +749,7 @@ namespace Follow.Dog
             _stateTime = 0f;
 
             if (next == DogState.Scent || next == DogState.Point) _sniffPause = 0f;
-            if (next != DogState.Point) _pointTimer = 0f;
+            if (next != DogState.Point) { _pointTimer = 0f; _callsMade = 0; }
 
             StateChanged?.Invoke(previous, next);
         }
@@ -617,16 +757,44 @@ namespace Follow.Dog
         // --- external nudges ------------------------------------------------------------
 
         /// <summary>
-        /// The player whistled. Whether anything happens is entirely a function of bond -
-        /// at low bond the whistle simply dies in the trees, which is the design in one sound.
+        /// The player whistled.
+        ///
+        /// This always does something now. It used to fail outright below a bond of 0.2
+        /// and a fresh run starts at 0.12 - so on the very day the whistle is taught it
+        /// could not work even once, which reads as a broken button rather than as a dog
+        /// with opinions. What bond changes is how she answers: a dog that trusts you
+        /// comes in properly, and one that does not looks up, drifts a few steps closer,
+        /// and gets on with what it was doing.
         /// </summary>
         public bool Whistle()
         {
-            if (Bond < 0.2f) return false;
-            if (State == DogState.Point) return true;   // it is already calling you
-
+            Whistled?.Invoke();
             LookTarget = _player != null ? _player.transform : null;
+            CheckedIn?.Invoke();
+
+            // Already stood over a find: she holds it. Giving up a find because you
+            // whistled would make the whistle actively harmful, so instead she answers -
+            // which is the thing you actually wanted, since it tells you where she is.
+            if (State == DogState.Point)
+            {
+                _barkTimer = 0f;
+                Bark(callInterval);
+                return true;
+            }
+
+            // Everything else: she comes, and she stays come.
+            //
+            // This used to be a bare Switch to Follow, which did nothing observable at
+            // all: ThinkFollow's very first act is to sweep for scent, and with a
+            // fifty-eight metre hunting radius it always found something, so she turned
+            // round and left again inside a single frame. The recall window is the whole
+            // mechanism - for as long as it lasts she will not take a new trail.
+            _recallTimer = Mathf.Lerp(recallByBond.x, recallByBond.y, Bond);
+            _sniffPause = 0f;
+            _errand = null;
+            _errandTimer = Mathf.Max(_errandTimer, 2f);
             Switch(DogState.Follow);
+            Bark(6f);
             return true;
         }
 
@@ -635,8 +803,10 @@ namespace Follow.Dog
         {
             LookTarget = _player != null ? _player.transform : null;
             _errandTimer = errandCooldown * 0.5f;
+            _recallTimer = Mathf.Max(_recallTimer, 3f);
             Switch(DogState.Follow);
-            if (_barkTimer <= 0f) { _barkTimer = 2f; Barked?.Invoke(); }
+            CheckedIn?.Invoke();
+            Bark(6f);
         }
 
         /// <summary>Night has fallen and the player is out. Come and get them.</summary>
@@ -652,6 +822,7 @@ namespace Follow.Dog
         {
             if (Find != null) Find.Consume();
             Find = null;
+            _findCooldown = findCooldown;
             Switch(DogState.Range);
         }
 
@@ -664,6 +835,10 @@ namespace Follow.Dog
             _errand = null;
             _carrying = 0;
             _turningIn = false;
+            _findCooldown = 0f;
+            _recallTimer = 0f;
+            _barkTimer = 0f;
+            _callsMade = 0;
             Switch(DogState.Idle);
         }
 

@@ -30,6 +30,41 @@ namespace Follow.Game
         float _turnVelocity;
         float _vertical;
 
+        readonly System.Collections.Generic.HashSet<object> _holds =
+            new System.Collections.Generic.HashSet<object>();
+        float _heldSince;
+
+        [Header("Safety")]
+        [Tooltip("Longest anything may hold movement before the hold is broken by force.")]
+        public float maxHoldSeconds = 20f;
+
+        /// <summary>Something is deliberately keeping you still: a shot, a cast, a night.</summary>
+        public bool Frozen => _holds.Count > 0;
+
+        /// <summary>
+        /// Take and give back control by name.
+        ///
+        /// This used to be done by switching the component off, which worked right up until
+        /// a coroutine threw between the two halves - and then movement was gone for the
+        /// rest of the session with no way back. Holds are counted, and the watchdog below
+        /// breaks any that outstays its welcome, so the worst case is a stutter rather than
+        /// a game you have to restart.
+        /// </summary>
+        public void Hold(object owner)
+        {
+            if (owner == null) return;
+            if (_holds.Count == 0) _heldSince = Time.unscaledTime;
+            _holds.Add(owner);
+        }
+
+        public void Release(object owner)
+        {
+            if (owner == null) return;
+            _holds.Remove(owner);
+        }
+
+        public void ReleaseAll() => _holds.Clear();
+
         void Awake()
         {
             Instance = this;
@@ -41,6 +76,27 @@ namespace Follow.Game
         void Update()
         {
             float dt = Mathf.Min(Time.deltaTime, 0.1f);
+
+            if (Frozen)
+            {
+                // Nothing lost: still fall, still settle, simply do not steer.
+                if (Time.unscaledTime - _heldSince > maxHoldSeconds)
+                {
+                    Debug.LogWarning("PlayerMover: a hold outlasted " + maxHoldSeconds
+                        + "s and was broken. Something did not give control back.");
+                    ReleaseAll();
+                }
+
+                _velocity.x = 0f;
+                _velocity.z = 0f;
+                if (_cc.isGrounded && _vertical < 0f) _vertical = -2f;
+                _vertical += gravity * dt;
+                _velocity.y = _vertical;
+                _cc.Move(_velocity * dt);
+                PlanarVelocity = Vector3.zero;
+                return;
+            }
+
             Vector2 axis = ReadAxis();
 
             Vector3 wish = Quaternion.Euler(0f, cameraYaw, 0f) * new Vector3(axis.x, 0f, axis.y);

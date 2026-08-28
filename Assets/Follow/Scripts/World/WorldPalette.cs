@@ -80,6 +80,10 @@ namespace Follow.World
         public GameObject logStack;
         public GameObject stump;
 
+        [Header("Wildlife")]
+        [Tooltip("Small birds for the ground flocks. Background life, never photographable.")]
+        public List<GameObject> birdModels = new List<GameObject>();
+
         [Header("Pickups")]
         [Tooltip("Small fallen branch, used as the firewood pickup model.")]
         public GameObject stickModel;

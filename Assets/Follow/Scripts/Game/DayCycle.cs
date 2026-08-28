@@ -61,7 +61,10 @@ namespace Follow.Game
             get
             {
                 if (Time01 < duskAt) return Mathf.Clamp01(Mathf.InverseLerp(-0.06f, 0.14f, Time01));
-                if (Time01 < darkAt) return 1f - Mathf.InverseLerp(duskAt, darkAt, Time01);
+                // Eased rather than linear: the light should go slowly at first, then
+                // quickly, then linger - which is what a sunset actually does.
+                if (Time01 < darkAt)
+                    return 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(duskAt, darkAt, Time01));
                 if (Time01 < dawnAt) return 0f;
                 return Mathf.InverseLerp(dawnAt, 1f, Time01);
             }
@@ -69,6 +72,18 @@ namespace Follow.Game
 
         /// <summary>How dark it is, 0 to 1. The inverse of daylight, kept for readability.</summary>
         public float Night => 1f - Daylight;
+
+        /// <summary>
+        /// Too dark to work by, and therefore also late enough to go to bed.
+        ///
+        /// One property, because these are the same fact and having two of them left a
+        /// gap: photography went by the light level and sleeping went by IsDusk, whose
+        /// window closes at dawnAt. Between the two there was a moment at half past four
+        /// in the morning when it was too dark to take a photograph and too late to be
+        /// allowed to sleep, which is a player standing in a black wood with nothing on
+        /// offer and no way to end the night.
+        /// </summary>
+        public bool LightHasGone => Daylight <= 0.16f;
 
         /// <summary>
         /// Feeds the photo grade: golden hour beats noon beats dusk, and after dark you
@@ -163,16 +178,21 @@ namespace Follow.Game
                 // so it is turned back over as the moon rather than switched off - dark
                 // with no direction at all reads as a rendering fault, not as night.
                 float elevation = Time01 * 360f;
-                bool moon = Daylight < 0.04f;
 
-                sun.transform.rotation = moon
+                // How much of the light is moonlight. This used to be a hard switch at
+                // four percent daylight, which popped the scene brighter and bluer in a
+                // single frame the moment the sun went out. Handing over across the last
+                // of the dusk means the change is only ever something you notice
+                // afterwards.
+                float moonAmount = 1f - Mathf.Clamp01(Daylight / 0.12f);
+
+                sun.transform.rotation = moonAmount > 0.5f
                     ? Quaternion.Euler(elevation - 180f, sunYaw + 180f, 0f)
                     : Quaternion.Euler(elevation, sunYaw, 0f);
 
-                sun.color = moon ? moonColor : sunColor.Evaluate(Time01);
-                sun.intensity = moon
-                    ? moonIntensity
-                    : Mathf.Max(0.02f, sunIntensity.Evaluate(Time01));
+                sun.color = Color.Lerp(sunColor.Evaluate(Time01), moonColor, moonAmount);
+                sun.intensity = Mathf.Lerp(
+                    Mathf.Max(0.02f, sunIntensity.Evaluate(Time01)), moonIntensity, moonAmount);
                 sun.shadowStrength = Mathf.Lerp(0.22f, 0.62f, Daylight);
             }
 

@@ -204,11 +204,7 @@ namespace Follow.Game
             GameHud.Instance?.Say(thirst ? "you cannot go on without water" : "you are too weak to stand", 3.5f);
 
             var player = PlayerMover.Instance;
-            if (player != null)
-            {
-                var mover = player.GetComponent<PlayerMover>();
-                if (mover != null) mover.enabled = false;
-            }
+            if (player != null) player.Hold(this);
 
             // Close the iris on the player, not on the middle of the screen.
             if (_iris != null && player != null && Camera.main != null)
@@ -229,11 +225,7 @@ namespace Follow.Game
 
             if (_iris != null) yield return _iris.Sweep(0f, 1f, 1.5f);
 
-            if (player != null)
-            {
-                var mover = player.GetComponent<PlayerMover>();
-                if (mover != null) mover.enabled = true;
-            }
+            if (player != null) player.Release(this);
             Collapsing = false;
         }
 

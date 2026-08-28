@@ -295,15 +295,67 @@ namespace Follow.World
                 if (lm.kind != WorldComposer.LandmarkKind.Pond) continue;
                 if (ChunkOf(new Vector3(lm.position.x, 0f, lm.position.y)) != key) continue;
 
-                var disc = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                disc.name = "Pond";
+                var disc = new GameObject("Pond");
                 disc.transform.SetParent(parent, true);
                 disc.transform.position = new Vector3(
                     lm.position.x, WorldComposer.PondSurface(lm), lm.position.y);
-                disc.transform.localScale = new Vector3(lm.radius * 2f, 0.08f, lm.radius * 2f);
-                disc.GetComponent<MeshRenderer>().sharedMaterial = palette.waterMaterial;
-                Destroy(disc.GetComponent<Collider>());
+
+                // Deliberately wider than the pond. The bank is a bowl, so a disc cut to
+                // the exact radius ends in mid-air above the slope and you see the rim of
+                // a sheet of glass. Overshooting buries the edge in the hillside instead,
+                // and the visible waterline becomes wherever the ground actually crosses
+                // it - an irregular shore rather than a drawn circle.
+                float reach = lm.radius * 1.28f;
+                disc.transform.localScale = new Vector3(reach, 1f, reach);
+                disc.AddComponent<MeshFilter>().sharedMesh = WaterDisc();
+                disc.AddComponent<MeshRenderer>().sharedMaterial = palette.waterMaterial;
             }
+        }
+
+        static Mesh _waterDisc;
+
+        /// <summary>
+        /// A flat fan, built once and reused at every pond.
+        ///
+        /// This used to be a Unity cylinder squashed to 8 centimetres, which meant every
+        /// pond was a solid slab with a lit side wall and a cap facing the ground - three
+        /// surfaces where the water wanted one.
+        /// </summary>
+        static Mesh WaterDisc()
+        {
+            if (_waterDisc == null)
+            {
+                const int segments = 48;
+                var vertices = new Vector3[segments + 1];
+                var normals = new Vector3[segments + 1];
+                var uvs = new Vector2[segments + 1];
+                var triangles = new int[segments * 3];
+
+                vertices[0] = Vector3.zero;
+                normals[0] = Vector3.up;
+                uvs[0] = new Vector2(0.5f, 0.5f);
+
+                for (int i = 0; i < segments; i++)
+                {
+                    float a = i / (float)segments * Mathf.PI * 2f;
+                    vertices[i + 1] = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
+                    normals[i + 1] = Vector3.up;
+                    uvs[i + 1] = new Vector2(Mathf.Cos(a) * 0.5f + 0.5f, Mathf.Sin(a) * 0.5f + 0.5f);
+
+                    triangles[i * 3] = 0;
+                    triangles[i * 3 + 1] = i + 1;
+                    triangles[i * 3 + 2] = (i + 1) % segments + 1;
+                }
+
+                _waterDisc = new Mesh { name = "PondDisc" };
+                _waterDisc.vertices = vertices;
+                _waterDisc.normals = normals;
+                _waterDisc.uv = uvs;
+                _waterDisc.triangles = triangles;
+                _waterDisc.RecalculateBounds();
+            }
+
+            return _waterDisc;
         }
 
         // --- scatter ---------------------------------------------------------------------

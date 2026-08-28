@@ -30,6 +30,12 @@ namespace Follow.Game
         /// <summary>Set while the shot is being taken; the subject holds absolutely still.</summary>
         public bool Calm { get; private set; }
 
+        /// <summary>
+        /// A shot is in progress on this one. The fields that stock the forest must leave
+        /// it alone until that is over, or the photographer is left holding a dead object.
+        /// </summary>
+        public bool Busy { get; set; }
+
         Animator _animator;
         System.Action _onLeave;
 

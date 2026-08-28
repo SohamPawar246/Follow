@@ -139,12 +139,35 @@ namespace Follow.Game
             // appeared, and with no sleep the day could never end.
             if (Photography.Instance != null && Photography.Instance.Busy) return;
 
-            bool night = cycle.IsDusk;
+            // The same test the lens uses. It used to be IsDusk, whose window shuts at
+            // dawnAt - so for the last stretch before sunrise it was too dark to work and
+            // too late to sleep, and the night simply had to be waited out.
+            bool night = cycle.IsDusk || cycle.LightHasGone;
             float d = Vector3.Distance(player.transform.position, _bed.position);
 
             if (!night || d > campRange)
             {
-                hud.HidePrompt(this);
+                // Out in the dark, away from camp.
+                //
+                // This is the state the player got stranded in: no subject in view so the
+                // lens says nothing, too far for the fire or the tent to speak, and the
+                // prompt line simply empty for the whole night. Standing in a black wood
+                // being told nothing at all is indistinguishable from the game having
+                // stopped. So the night itself says which way home is.
+                if (cycle.LightHasGone)
+                {
+                    var fire2 = Campfire.Instance;
+                    string where = fire2 != null
+                        ? Toward(player.transform.position, fire2.transform.position)
+                        : "";
+
+                    hud.ShowPrompt(this, fire2 != null && fire2.IsLit
+                        ? "the fire is " + where + " of you"
+                        : _state.sticks >= 4
+                            ? "dark. camp is " + where + " - you have wood for a fire"
+                            : "dark. camp is " + where + " of you", 2);
+                }
+                else hud.HidePrompt(this);
 
                 // A nudge, once, when the light goes.
                 if (night && _nagTimer <= 0f)
@@ -168,6 +191,20 @@ namespace Follow.Game
                 StartCoroutine(Sleep());
         }
 
+        /// <summary>
+        /// Which way something is, in words rather than an arrow on the screen.
+        /// </summary>
+        static string Toward(Vector3 from, Vector3 target)
+        {
+            Vector3 to = target - from;
+            float degrees = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+            if (degrees < 0f) degrees += 360f;
+
+            string[] names = { "north", "north-east", "east", "south-east",
+                               "south", "south-west", "west", "north-west" };
+            return names[Mathf.RoundToInt(degrees / 45f) % 8];
+        }
+
         // --- the night ------------------------------------------------------------
 
         IEnumerator Sleep()
@@ -177,8 +214,8 @@ namespace Follow.Game
             hud?.HidePrompt(this);
 
             var player = PlayerMover.Instance;
-            var mover = player != null ? player.GetComponent<PlayerMover>() : null;
-            if (mover != null) mover.enabled = false;
+            var mover = player;
+            if (mover != null) mover.Hold(this);
 
             var dog = DogBrain.Instance;
             float settled = 9f;
@@ -201,7 +238,7 @@ namespace Follow.Game
             Settle(settled);
             Morning();
 
-            if (mover != null) mover.enabled = true;
+            if (mover != null) mover.Release(this);
             Sleeping = false;
         }
 

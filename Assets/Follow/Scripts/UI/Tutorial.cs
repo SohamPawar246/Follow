@@ -70,12 +70,31 @@ namespace Follow.UI
 
             _steps.Add(new Step
             {
-                title = "This is your dog",
-                body = "She works ahead of you and finds what you cannot see. "
-                     + "Click the paw, top right, to whistle. G shares your food with her.",
-                minSeconds = 4f,
+                title = "Whistle for her",
+                body = "Press Q, or click the paw at the top right. She works ahead of you "
+                     + "and finds what you would walk straight past.",
+                minSeconds = 2f,
+                done = () => _whistled
+            });
+
+            _steps.Add(new Step
+            {
+                title = "Listen for barking",
+                body = "When she finds something she stops and barks until you come. "
+                     + "That bark is the only thing telling you where to look.",
+                minSeconds = 3f,
                 done = () => Follow.Dog.DogBrain.Instance != null
-                          && Follow.Dog.DogBrain.Instance.DistanceToPlayer < 6f
+                          && (Follow.Dog.DogBrain.Instance.State == Follow.Dog.DogState.Point
+                           || _photographed)
+            });
+
+            _steps.Add(new Step
+            {
+                title = "Photograph it",
+                body = "Press F when you are close. Arrow keys, in the order shown - "
+                     + "green means you got it, red means you did not, and the bar is "
+                     + "how long you have.",
+                done = () => _photographed
             });
 
             _steps.Add(new Step
@@ -84,14 +103,6 @@ namespace Follow.UI
                 body = "Fallen branches lie under the trees. Walk over one to take it. "
                      + "You need four for a fire.",
                 done = () => _state.sticks >= 1
-            });
-
-            _steps.Add(new Step
-            {
-                title = "Photograph something",
-                body = "Get near an animal or a flowering plant and press F. "
-                     + "Then press the arrow keys in the order they appear.",
-                done = () => _photographed
             });
 
             _steps.Add(new Step
@@ -106,8 +117,8 @@ namespace Follow.UI
             _steps.Add(new Step
             {
                 title = "Four sticks",
-                body = "Keep gathering. Water is free at any pond and food is not, "
-                     + "so keep an eye on both bars.",
+                body = "Keep gathering. Water is free - just stand at a pond. Food is not: "
+                     + "press E at the water to fish, and G shares what you have with her.",
                 done = () => _state.sticks >= 4
             });
 
@@ -121,18 +132,23 @@ namespace Follow.UI
         }
 
         bool _journalOpened;
+        bool _whistled;
 
         void Update()
         {
             // It sits under the journal and the photo review on the canvas order, where it
-            // shows through their dim as a grey slab. Simply get out of the way.
+            // shows through their dim as a grey slab. Simply get out of the way - and do
+            // the same during a shot, where the arrow row can be driven down over it.
+            bool busy = UIModal.Any
+                     || (Photography.Instance != null && Photography.Instance.Busy);
             if (_group != null)
                 _group.alpha = Mathf.MoveTowards(_group.alpha,
-                    UIModal.Any ? 0f : _wanted, Time.unscaledDeltaTime / 0.15f);
+                    busy ? 0f : _wanted, Time.unscaledDeltaTime / 0.15f);
 
             var kb = Keyboard.current;
             if (kb != null && (kb.jKey.wasPressedThisFrame || kb.tabKey.wasPressedThisFrame))
                 _journalOpened = true;
+            if (kb != null && kb.qKey.wasPressedThisFrame) _whistled = true;
 
             // Counting shots rather than album entries, so discarding a bad one still
             // counts as having learned how to take it.
@@ -152,7 +168,8 @@ namespace Follow.UI
             }
 
             _title.text = "That is all of it";
-            _body.text = "Everything else is the forest. Esc for options.";
+            _body.text = "Sleep in the tent when it gets dark. Everything else is the "
+                       + "forest. Esc for options.";
             yield return new WaitForSeconds(5f);
             yield return Hide();
 
@@ -180,8 +197,10 @@ namespace Follow.UI
             canvas.transform.SetParent(transform, false);
             var root = UIFactory.Stretch(UIFactory.Rect("Tutorial", canvas.transform));
 
-            _card = UIFactory.Card("Card", root, new Vector2(460f, 190f), T.cream, -1.1f);
-            UIFactory.Anchor(_card, new Vector2(0f, 0f), new Vector2(252f, 40f), new Vector2(470f, 186f));
+            // Narrower and further left than it was, so its right edge clears the toast
+            // card that rises out of the bottom centre.
+            _card = UIFactory.Card("Card", root, new Vector2(420f, 190f), T.cream, -1.1f);
+            UIFactory.Anchor(_card, new Vector2(0f, 0f), new Vector2(240f, 40f), new Vector2(420f, 186f));
             _card.pivot = new Vector2(0f, 0f);
 
             var tab = UIFactory.Card("Tab", _card, new Vector2(300f, 56f), T.leaf, 2.2f);
@@ -200,12 +219,12 @@ namespace Follow.UI
             _title.textWrappingMode = TextWrappingModes.NoWrap;
             _title.overflowMode = TextOverflowModes.Truncate;
 
-            _body = UIFactory.Label("Body", _card, "", 22, T.ink, TextAlignmentOptions.TopLeft);
-            UIFactory.Anchor(_body.rectTransform, new Vector2(0f, 1f), new Vector2(30f, -34f),
-                new Vector2(400f, 132f));
+            _body = UIFactory.Label("Body", _card, "", 21, T.ink, TextAlignmentOptions.TopLeft);
+            UIFactory.Anchor(_body.rectTransform, new Vector2(0f, 1f), new Vector2(28f, -34f),
+                new Vector2(364f, 134f));
             _body.enableAutoSizing = true;
-            _body.fontSizeMin = 16f;
-            _body.fontSizeMax = 22f;
+            _body.fontSizeMin = 14f;
+            _body.fontSizeMax = 21f;
 
             // A tick that stamps on when the step is satisfied.
             _tick = UIFactory.Rect("Tick", _card);

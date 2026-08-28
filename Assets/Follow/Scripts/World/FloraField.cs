@@ -59,6 +59,8 @@ namespace Follow.World
                 if (specimen == null) { _mine.RemoveAt(i); continue; }
 
                 var subject = specimen.GetComponent<PhotoSubject>();
+                if (subject != null && subject.Busy) continue;
+
                 bool done = subject != null && subject.Photographed;
                 bool far = Vector3.Distance(specimen.transform.position, here) > retireRadius;
                 if (!done && !far) continue;

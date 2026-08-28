@@ -80,12 +80,93 @@ namespace Follow.Game
             }
 
             State = Mode.Aiming;
+
+            // After dark you cannot see to work, and neither can the lens. This is most
+            // of what gives the night a shape: the survey stops, and the only thing left
+            // to do is get back to the fire and sleep. It is also the strongest reason
+            // the fire is worth four sticks - its light is the one exception.
+            if (TooDark(player))
+            {
+                // Say what there is to do, not what there is not.
+                //
+                // "too dark to photograph" is a refusal, and on its own in the middle of
+                // a black wood it is the whole interface - the player is left holding a
+                // sentence about a thing they cannot do. Every branch here ends in an
+                // instruction instead. Priority zero, below everything, so the fire and
+                // the tent always talk over it when they have something better to say.
+                hud?.ShowPrompt(this, DarkAdvice(player), 0);
+                return;
+            }
+
             hud?.ShowPrompt(this, "F   photograph the "
                 + Target.species.commonName.ToLowerInvariant(), 1);
 
             bool pressed = Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame;
             if (pressed) StartCoroutine(Shoot(Target));
         }
+
+        /// <summary>What to do with a night you cannot work in.</summary>
+        static string DarkAdvice(PlayerMover player)
+        {
+            var fire = Follow.World.Campfire.Instance;
+            var state = Follow.Core.GameState.Instance;
+
+            if (fire == null || state == null) return "too dark - wait for first light";
+
+            if (!state.campfireBuilt)
+                return state.sticks > 0
+                    ? "too dark - build a fire back at camp"
+                    : "too dark - you need four sticks for a fire";
+
+            if (!fire.IsLit)
+                return state.sticks > 0
+                    ? "too dark - the fire needs feeding"
+                    : "too dark - the fire is out, and you have no wood";
+
+            float away = Vector3.Distance(player.transform.position, fire.transform.position);
+            if (away > firelightRange)
+                return "too dark - " + Toward(player, fire.transform.position) + ", to the fire";
+
+            return "too dark - sleep in the tent";
+        }
+
+        /// <summary>
+        /// Which way camp is, in words. The player asked for no on-screen markers and
+        /// they were right; a compass word in a sentence is the same help without
+        /// putting an arrow over the forest.
+        /// </summary>
+        static string Toward(PlayerMover player, Vector3 target)
+        {
+            Vector3 to = target - player.transform.position;
+            float degrees = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+            if (degrees < 0f) degrees += 360f;
+
+            string[] names = { "north", "north-east", "east", "south-east",
+                               "south", "south-west", "west", "north-west" };
+            return names[Mathf.RoundToInt(degrees / 45f) % 8];
+        }
+
+        /// <summary>
+        /// Whether there is enough light to take a photograph at all.
+        ///
+        /// Generous about when night starts - it goes by the same daylight figure the sky
+        /// does, so it agrees with what you can see - and the lit campfire buys back a
+        /// working circle around itself.
+        /// </summary>
+        public static bool TooDark(PlayerMover player)
+        {
+            var cycle = DayCycle.Instance;
+            if (cycle == null || player == null) return false;
+            if (!cycle.LightHasGone) return false;
+
+            var fire = Follow.World.Campfire.Instance;
+            if (fire == null || !fire.IsLit) return true;
+
+            return Vector3.Distance(player.transform.position, fire.transform.position) > firelightRange;
+        }
+
+        [Tooltip("How far the lit fire throws enough light to photograph by.")]
+        public static float firelightRange = 9f;
 
         // --- the shot ------------------------------------------------------------
 
@@ -94,40 +175,48 @@ namespace Follow.Game
             State = Mode.Shooting;
             GameHud.Instance?.HidePrompt(this);
 
+            // Everything the rest of this needs, taken now.
+            //
+            // The review card waits on a human, and the fields that stock the forest retire
+            // subjects on a timer - so by the time somebody clicks "Keep it" the component
+            // this started from may well have been destroyed. Reading species off it after
+            // the wait threw, the coroutine died, and movement was never handed back: that
+            // was the freeze.
+            var species = subject.species;
             subject.SetCalm(true);
+            subject.Busy = true;
             FacePlayerAt(subject);
 
-            // Arrow keys are also the walk keys. Nobody should wander out of their own
-            // shot because the minigame and the movement share a keyboard.
             var mover = PlayerMover.Instance;
-            bool moverWas = mover != null && mover.enabled;
 
             // Harder subjects want a longer sequence and less time to think.
-            float rarity = Mathf.Clamp01(subject.species.rarity);
+            float rarity = Mathf.Clamp01(species.rarity);
             int steps = 3 + Mathf.RoundToInt(rarity * 3f);
             float perStep = Mathf.Lerp(2.2f, 1.4f, rarity);
 
             int misses = 0;
-            if (mover != null) mover.enabled = false;
+            if (mover != null) mover.Hold(this);
             yield return new WaitForSeconds(0.3f);          // let the turn finish first
             yield return _sequence.Run(subject, steps, perStep, result => misses = result);
-            if (mover != null) mover.enabled = moverWas;
+            if (mover != null) mover.Release(this);
 
             var photo = Capture(subject);
             Spoil(photo, misses, steps);
             ShotsTaken++;
-            float score = Grade(subject, misses);
+            float score = Grade(subject, species, misses);
 
+            subject.Busy = false;
             subject.MarkPhotographed();
             State = Mode.Reviewing;
 
+            // From here on nothing touches the subject. It may not exist any more.
             bool keep = true;
-            yield return _review.Show(subject.species, photo, score, misses, k => keep = k);
+            yield return _review.Show(species, photo, score, misses, k => keep = k);
 
             if (keep)
             {
-                bool improved = _state.album.Record(subject.species.id, score, photo, _state.day);
-                GameHud.Instance?.OnSpeciesLogged(subject.species);
+                bool improved = _state.album.Record(species.id, score, photo, _state.day);
+                GameHud.Instance?.OnSpeciesLogged(species);
                 if (!improved) GameHud.Instance?.Say("you already had a better one");
                 _state.AddBond(0.03f + score * 0.04f);
             }
@@ -155,9 +244,9 @@ namespace Follow.Game
         /// of your hands, and light and distance are the two things a real photograph of a
         /// wild animal actually turns on.
         /// </summary>
-        float Grade(PhotoSubject subject, int misses)
+        float Grade(PhotoSubject subject, Data.SpeciesData species, int misses)
         {
-            float rarity = Mathf.Clamp01(subject.species.rarity);
+            float rarity = Mathf.Clamp01(species.rarity);
             int steps = 3 + Mathf.RoundToInt(rarity * 3f);
 
             float steadiness = 1f - Mathf.Clamp01(misses / (float)steps) * 0.92f;

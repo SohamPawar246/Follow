@@ -126,13 +126,20 @@ namespace Follow.UI
         void BuildPrompt()
         {
             _prompt = UIFactory.Card("Prompt", _root, new Vector2(560f, 78f), T.cream, 0.6f);
-            UIFactory.Anchor(_prompt, new Vector2(0.5f, 0f), new Vector2(0f, 262f), new Vector2(560f, 78f));
+            UIFactory.Anchor(_prompt, new Vector2(0.5f, 0f), new Vector2(0f, 274f), new Vector2(560f, 78f));
             _prompt.pivot = new Vector2(0.5f, 0f);
 
             _promptLabel = UIFactory.Label("Text", _prompt, "", 28, T.ink,
                 TextAlignmentOptions.Center, true);
             UIFactory.Stretch(_promptLabel.rectTransform, 16f);
             TextStyles.Soft(_promptLabel, new Color(0f, 0f, 0f, 0.16f));
+
+            // Shrink to fit rather than spill. Prompts are assembled from a key name and
+            // a phrase, and the longest of them do not fit at the full size.
+            _promptLabel.enableAutoSizing = true;
+            _promptLabel.fontSizeMin = 19f;
+            _promptLabel.fontSizeMax = 28f;
+            _promptLabel.textWrappingMode = TextWrappingModes.NoWrap;
 
             UIFactory.Group(_prompt).alpha = 0f;
         }
@@ -198,13 +205,20 @@ namespace Follow.UI
 
         void BuildToast()
         {
-            _toast = UIFactory.Card("Toast", _root, new Vector2(580f, 94f), T.honey, -0.8f);
-            UIFactory.Anchor(_toast, new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(580f, 94f));
+            _toast = UIFactory.Card("Toast", _root, new Vector2(560f, 92f), T.honey, -0.8f);
+            UIFactory.Anchor(_toast, new Vector2(0.5f, 0f), new Vector2(0f, 168f), new Vector2(560f, 92f));
             _toast.pivot = new Vector2(0.5f, 0f);
 
-            _toastLabel = UIFactory.Label("Text", _toast, "", 32, T.ink, TextAlignmentOptions.Center, true);
-            UIFactory.Stretch(_toastLabel.rectTransform, 18f);
+            _toastLabel = UIFactory.Label("Text", _toast, "", 30, T.ink, TextAlignmentOptions.Center, true);
+            UIFactory.Stretch(_toastLabel.rectTransform, 20f);
             TextStyles.Soft(_toastLabel, new Color(0f, 0f, 0f, 0.16f));
+
+            // The dog's messages are whole sentences - "she is barking, away to the
+            // north-east" is well past what this box holds at thirty points.
+            _toastLabel.enableAutoSizing = true;
+            _toastLabel.fontSizeMin = 20f;
+            _toastLabel.fontSizeMax = 30f;
+
             UIFactory.Group(_toast).alpha = 0f;
         }
 

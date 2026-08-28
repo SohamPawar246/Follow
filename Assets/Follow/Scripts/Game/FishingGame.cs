@@ -19,26 +19,26 @@ namespace Follow.Game
     ///
     /// The bar is Stardew's, because it is the right idea: hold to rise, release to fall,
     /// and keep a wandering fish inside a window you are always slightly behind.
+    ///
+    /// It starts the instant you press. There used to be a wait-for-the-bite phase in
+    /// front of it, and every honest instinct a player has - press the button, see if it
+    /// worked - failed the cast with "too soon". A phase whose only rule is "do nothing
+    /// yet" is not tension, it is a locked door.
     /// </summary>
     public class FishingGame : MonoBehaviour
     {
         public static FishingGame Instance { get; private set; }
 
         [Header("Reach")]
-        public float castRange = 5.5f;
-
-        [Header("The bite")]
-        public Vector2 waitForBite = new Vector2(1.8f, 4.2f);
-        [Tooltip("How long you have to strike once it bites. Generous: this is not a reflex test.")]
-        public float hookWindow = 1.4f;
+        public float castRange = 6.5f;
 
         [Header("The fight")]
-        public float catchSeconds = 14f;
-        public float barHeight = 0.24f;
+        public float catchSeconds = 16f;
+        public float barHeight = 0.26f;
         public float lift = 2.2f;
         public float gravity = -1.6f;
-        public float fillRate = 0.5f;
-        public float slipRate = 0.22f;
+        public float fillRate = 0.52f;
+        public float slipRate = 0.2f;
 
         public bool Busy { get; private set; }
 
@@ -46,12 +46,16 @@ namespace Follow.Game
 
         // UI
         RectTransform _root;
+        RectTransform _card;
         CanvasGroup _group;
         RectTransform _track;
         RectTransform _window;
+        Image _windowImage;
         RectTransform _fish;
         RectTransform _progress;
+        Image _progressImage;
         TextMeshProUGUI _caption;
+        TextMeshProUGUI _hint;
 
         void Awake() { Instance = this; }
         void OnDestroy() { if (Instance == this) Instance = null; }
@@ -71,7 +75,7 @@ namespace Follow.Game
             if (player == null || hud == null) return;
 
             // Never offer fishing over the top of something more urgent.
-            if (Follow.UI.UIModal.Any) { hud.HidePrompt(this); return; }
+            if (UIModal.Any) { hud.HidePrompt(this); return; }
             if (SleepSystem.Instance != null && SleepSystem.Instance.Sleeping) return;
             // Only a shot in progress blocks this. Merely having a subject in view
             // sets the camera to Aiming, and there is almost always something in view -
@@ -89,7 +93,7 @@ namespace Follow.Game
             float edge = Vector2.Distance(new Vector2(p.x, p.z), pond.position) - pond.radius;
             if (edge > castRange) { hud.HidePrompt(this); return; }
 
-            hud.ShowPrompt(this, "E   fish here", 2);
+            hud.ShowPrompt(this, "E   cast a line", 2);
             if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
                 StartCoroutine(Fish());
         }
@@ -99,84 +103,62 @@ namespace Follow.Game
         IEnumerator Fish()
         {
             Busy = true;
-            var hud = GameHud.Instance;
-            hud?.HidePrompt(this);
+            GameHud.Instance?.HidePrompt(this);
 
-            var player = PlayerMover.Instance;
-            var mover = player != null ? player.GetComponent<PlayerMover>() : null;
-            if (mover != null) mover.enabled = false;
+            var mover = PlayerMover.Instance;
+            if (mover != null) mover.Hold(this);
 
             Show(true);
-            _caption.text = "wait for it";
             SetWindow(0.5f, barHeight);
             SetFish(0.5f);
-            SetProgress(0f);
-
-            // The E that started this is still "pressed this frame" right now. Reading it
-            // here failed every single cast instantly with "too soon", which is why
-            // fishing appeared not to work at all. Let the press go before listening.
-            yield return null;
-            float grace = 0f;
-            while (grace < 0.4f) { grace += Time.deltaTime; yield return null; }
-
-            float wait = Random.Range(waitForBite.x, waitForBite.y);
-            float t = 0f;
-            bool early = false;
-            while (t < wait)
-            {
-                t += Time.deltaTime;
-                // Jabbing at it before the bite loses the cast, which is what makes the
-                // waiting a real part of it.
-                if (Pressed()) { early = true; break; }
-                yield return null;
-            }
-
-            if (early)
-            {
-                _caption.text = "too soon - wait for the bite";
-                yield return new WaitForSeconds(0.9f);
-                yield return Finish(mover, 0);
-                yield break;
-            }
-
-            _caption.text = "NOW - press E";
-            _caption.color = CozyTheme.Active.berry;
-            CozySounds.Play(CozySounds.Active?.chipPop, 1f);
-
-            float window = 0f;
-            bool hooked = false;
-            while (window < hookWindow)
-            {
-                window += Time.deltaTime;
-                if (Pressed()) { hooked = true; break; }
-                yield return null;
-            }
-
-            if (!hooked)
-            {
-                _caption.text = "it slipped the hook";
-                yield return new WaitForSeconds(1f);
-                yield return Finish(mover, 0);
-                yield break;
-            }
+            SetProgress(0.4f);
 
             _caption.color = CozyTheme.Active.ink;
+            _caption.text = "cast";
+            _hint.text = "";
+            CozySounds.Play(CozySounds.Active?.chipPop, 0.7f);
+
+            // Long enough to see the card arrive, short enough that it reads as one
+            // continuous action with the keypress that started it.
+            yield return StartCoroutine(SlideIn(0.28f));
 
             int caught = 0;
             yield return Fight(result => caught = result);
             yield return Finish(mover, caught);
         }
 
+        /// <summary>The card comes in from the left as the line goes out.</summary>
+        IEnumerator SlideIn(float seconds)
+        {
+            Vector2 home = new Vector2(-500f, -10f);
+            float t = 0f;
+            while (t < seconds)
+            {
+                t += Time.deltaTime;
+                float k = Mathf.Clamp01(t / seconds);
+                // Overshoot slightly, then settle. A card that simply appears reads as a
+                // popup; one that arrives reads as part of the throw.
+                float ease = 1f - Mathf.Pow(1f - k, 3f);
+                _card.anchoredPosition = Vector2.Lerp(home + new Vector2(-140f, 0f), home, ease);
+                _group.alpha = k;
+                yield return null;
+            }
+            _card.anchoredPosition = home;
+            _group.alpha = 1f;
+        }
+
         IEnumerator Fight(System.Action<int> onDone)
         {
-            _caption.text = "hold to raise";
+            _caption.text = "hold E";
+            _hint.text = "keep it in the green";
 
             float bar = 0.5f;
             float barVelocity = 0f;
             float fish = 0.5f;
-            float progress = 0.35f;
+            float progress = 0.4f;
             float noiseSeed = Random.value * 100f;
             float elapsed = 0f;
+            float wasInside = 1f;
 
             while (elapsed < catchSeconds)
             {
@@ -184,11 +166,14 @@ namespace Follow.Game
                 elapsed += dt;
 
                 // The fish wanders on smooth noise with the occasional dart, so it is
-                // readable most of the time and surprising just often enough.
-                float target = Mathf.PerlinNoise(noiseSeed, elapsed * 0.55f);
-                if (Mathf.PerlinNoise(noiseSeed + 40f, elapsed * 2.3f) > 0.86f)
-                    target = Mathf.Clamp01(target + Random.Range(-0.35f, 0.35f));
-                fish = Mathf.Lerp(fish, Mathf.Clamp01(target), 1f - Mathf.Exp(-dt / 0.4f));
+                // readable most of the time and surprising just often enough. It settles
+                // down for the first second so the opening is never a scramble.
+                float calm = Mathf.Clamp01(elapsed / 1.2f);
+                float target = Mathf.PerlinNoise(noiseSeed, elapsed * 0.5f);
+                if (calm > 0.9f && Mathf.PerlinNoise(noiseSeed + 40f, elapsed * 2.3f) > 0.88f)
+                    target = Mathf.Clamp01(target + Random.Range(-0.3f, 0.3f));
+                fish = Mathf.Lerp(fish, Mathf.Lerp(0.5f, Mathf.Clamp01(target), calm),
+                    1f - Mathf.Exp(-dt / 0.4f));
 
                 barVelocity += (Held() ? lift : gravity) * dt;
                 barVelocity = Mathf.Clamp(barVelocity, -1.6f, 1.6f);
@@ -205,20 +190,31 @@ namespace Follow.Game
                 SetWindow(bar, barHeight);
                 SetFish(fish);
                 SetProgress(progress);
-                _window.GetComponent<Image>().color = inside
-                    ? CozyTheme.Active.leaf : CozyTheme.Active.paperDeep;
+
+                // The window itself is the readout: green while you have it, pale the
+                // instant you lose it. Nothing else on the card needs to be watched.
+                wasInside = Mathf.MoveTowards(wasInside, inside ? 1f : 0f, dt / 0.12f);
+                _windowImage.color = Color.Lerp(CozyTheme.Active.paperDeep,
+                    CozyTheme.Active.leaf, wasInside);
+                _progressImage.color = progress < 0.25f
+                    ? CozyTheme.Active.berry : CozyTheme.Active.honey;
 
                 if (progress >= 1f)
                 {
+                    _caption.color = CozyTheme.Active.forest;
                     _caption.text = "got it";
-                    yield return new WaitForSeconds(0.6f);
+                    _hint.text = "";
+                    CozySounds.Play(CozySounds.Active?.chipPop, 1f);
+                    yield return new WaitForSeconds(0.7f);
                     // A long fight lands a better fish.
-                    onDone?.Invoke(elapsed > catchSeconds * 0.5f ? 2 : 1);
+                    onDone?.Invoke(elapsed > catchSeconds * 0.45f ? 2 : 1);
                     yield break;
                 }
                 if (progress <= 0f)
                 {
+                    _caption.color = CozyTheme.Active.berry;
                     _caption.text = "it got away";
+                    _hint.text = "";
                     yield return new WaitForSeconds(0.9f);
                     onDone?.Invoke(0);
                     yield break;
@@ -228,12 +224,20 @@ namespace Follow.Game
             }
 
             _caption.text = "your arms gave out";
+            _hint.text = "";
             yield return new WaitForSeconds(0.9f);
             onDone?.Invoke(0);
         }
 
         IEnumerator Finish(PlayerMover mover, int caught)
         {
+            float t = 0f;
+            while (t < 0.2f)
+            {
+                t += Time.deltaTime;
+                _group.alpha = 1f - t / 0.2f;
+                yield return null;
+            }
             Show(false);
 
             if (caught > 0)
@@ -244,16 +248,12 @@ namespace Follow.Game
             }
 
             // Fishing costs the thing you actually have least of at dusk.
-            _state.energy = Mathf.Clamp01(_state.energy - 0.05f);
+            _state.energy = Mathf.Clamp01(_state.energy - 0.04f);
 
             yield return null;
-            if (mover != null) mover.enabled = true;
+            if (mover != null) mover.Release(this);
             Busy = false;
         }
-
-        static bool Pressed() =>
-            Keyboard.current != null &&
-            (Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame);
 
         static bool Held() =>
             Keyboard.current != null &&
@@ -269,14 +269,22 @@ namespace Follow.Game
             canvas.transform.SetParent(transform, false);
             _root = UIFactory.Stretch(UIFactory.Rect("Fishing", canvas.transform));
 
-            var card = UIFactory.Card("Rod", _root, new Vector2(280f, 540f), T.cream, -1.4f);
-            UIFactory.Anchor(card, new Vector2(0.5f, 0.5f), new Vector2(0f, 0f), new Vector2(280f, 540f));
-            card.anchorMin = card.anchorMax = card.pivot = new Vector2(0.5f, 0.5f);
-            card.anchoredPosition = new Vector2(-460f, -10f);
+            _card = UIFactory.Card("Rod", _root, new Vector2(268f, 500f), T.cream, -1.4f);
+            _card.anchorMin = _card.anchorMax = _card.pivot = new Vector2(0.5f, 0.5f);
+            _card.sizeDelta = new Vector2(268f, 500f);
+            _card.anchoredPosition = new Vector2(-500f, -10f);
+
+            var title = UIFactory.Label("Title", _card, "fishing", 24, T.inkSoft,
+                TextAlignmentOptions.Center, true);
+            UIFactory.Anchor(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -14f),
+                new Vector2(230f, 32f));
+            title.rectTransform.pivot = new Vector2(0.5f, 1f);
+            title.characterSpacing = 4f;
 
             // The lane the fish swims in.
-            _track = UIFactory.Rect("Track", card);
-            UIFactory.Anchor(_track, new Vector2(0.5f, 0.5f), new Vector2(-28f, 6f), new Vector2(74f, 400f));
+            _track = UIFactory.Rect("Track", _card);
+            UIFactory.Anchor(_track, new Vector2(0.5f, 0.5f), new Vector2(-28f, 10f),
+                new Vector2(74f, 340f));
             _track.anchorMin = _track.anchorMax = _track.pivot = new Vector2(0.5f, 0.5f);
 
             var trackOutline = UIFactory.Shape("Outline", _track, T.Chip, T.outline);
@@ -291,11 +299,11 @@ namespace Follow.Game
             _window.pivot = new Vector2(0.5f, 0.5f);
             _window.offsetMin = new Vector2(6f, 0f);
             _window.offsetMax = new Vector2(-6f, 0f);
-            var windowImg = _window.gameObject.AddComponent<Image>();
-            windowImg.sprite = T.Chip;
-            windowImg.type = Image.Type.Sliced;
-            windowImg.color = T.paperDeep;
-            windowImg.raycastTarget = false;
+            _windowImage = _window.gameObject.AddComponent<Image>();
+            _windowImage.sprite = T.Chip;
+            _windowImage.type = Image.Type.Sliced;
+            _windowImage.color = T.paperDeep;
+            _windowImage.raycastTarget = false;
 
             _fish = UIFactory.Rect("Fish", _track);
             _fish.anchorMin = _fish.anchorMax = new Vector2(0.5f, 0f);
@@ -304,7 +312,8 @@ namespace Follow.Game
             var fishBody = UIFactory.Shape("Body", _fish, T.Dot, T.berry, Image.Type.Simple);
             UIFactory.Stretch(fishBody.rectTransform);
             fishBody.raycastTarget = false;
-            var fishTail = UIFactory.Shape("Tail", _fish, Sticker.Triangle(48), T.berry, Image.Type.Simple);
+            var fishTail = UIFactory.Shape("Tail", _fish, Sticker.Triangle(48), T.berry,
+                Image.Type.Simple);
             UIFactory.Anchor(fishTail.rectTransform, new Vector2(0f, 0.5f), new Vector2(-2f, 0f),
                 new Vector2(18f, 18f));
             fishTail.rectTransform.pivot = new Vector2(1f, 0.5f);
@@ -312,8 +321,9 @@ namespace Follow.Game
             fishTail.raycastTarget = false;
 
             // How close you are to landing it, beside the lane.
-            var meter = UIFactory.Rect("Meter", card);
-            UIFactory.Anchor(meter, new Vector2(0.5f, 0.5f), new Vector2(46f, 6f), new Vector2(30f, 400f));
+            var meter = UIFactory.Rect("Meter", _card);
+            UIFactory.Anchor(meter, new Vector2(0.5f, 0.5f), new Vector2(46f, 10f),
+                new Vector2(30f, 340f));
             meter.anchorMin = meter.anchorMax = meter.pivot = new Vector2(0.5f, 0.5f);
 
             var meterOutline = UIFactory.Shape("Outline", meter, T.Chip, T.outline);
@@ -322,20 +332,26 @@ namespace Follow.Game
             UIFactory.Stretch(meterBack.rectTransform, T.outlineWidth * 0.6f);
             meterBack.raycastTarget = false;
 
-            var progressImg = UIFactory.Shape("Fill", meter, T.Chip, T.honey);
-            _progress = progressImg.rectTransform;
+            _progressImage = UIFactory.Shape("Fill", meter, T.Chip, T.honey);
+            _progress = _progressImage.rectTransform;
             _progress.anchorMin = new Vector2(0f, 0f);
             _progress.anchorMax = new Vector2(1f, 1f);
             _progress.pivot = new Vector2(0.5f, 0f);
             _progress.offsetMin = new Vector2(4f, 4f);
             _progress.offsetMax = new Vector2(-4f, -4f);
-            progressImg.raycastTarget = false;
+            _progressImage.raycastTarget = false;
 
-            _caption = UIFactory.Label("Caption", card, "", 22, T.ink,
+            _caption = UIFactory.Label("Caption", _card, "", 26, T.ink,
                 TextAlignmentOptions.Center, true);
-            UIFactory.Anchor(_caption.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 16f),
-                new Vector2(250f, 56f));
+            UIFactory.Anchor(_caption.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 44f),
+                new Vector2(236f, 38f));
             _caption.rectTransform.pivot = new Vector2(0.5f, 0f);
+
+            _hint = UIFactory.Label("Hint", _card, "", 19, T.inkSoft,
+                TextAlignmentOptions.Center, true);
+            UIFactory.Anchor(_hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 16f),
+                new Vector2(236f, 30f));
+            _hint.rectTransform.pivot = new Vector2(0.5f, 0f);
 
             _group = UIFactory.Group(_root);
             _group.alpha = 0f;

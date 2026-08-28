@@ -115,6 +115,11 @@ namespace Follow.EditorTools
             palette.groundMaterial = GroundMaterial();
             palette.waterMaterial = WaterMaterial();
 
+            // Background life. The dove model doubles as the generic small bird: it is
+            // the only small bird in the project and at flock scale it reads as any of
+            // them, which is enough for something you mostly see leaving.
+            palette.birdModels = Birds();
+
             palette.campfireStones = Kenny("campfire_stones");
             palette.campfireLogs = Kenny("campfire_logs");
             palette.tent = Kenny("tent_smallOpen");
@@ -300,6 +305,25 @@ namespace Follow.EditorTools
 
         static GameObject Kenny(string name) => Kenny(new[] { name }).FirstOrDefault();
 
+        /// <summary>The small birds, for the flocks that scatter out of the undergrowth.</summary>
+        static List<GameObject> Birds()
+        {
+            var found = new List<GameObject>();
+            if (!AssetDatabase.IsValidFolder("Assets/Birds")) return found;
+
+            foreach (var guid in AssetDatabase.FindAssets("t:GameObject", new[] { "Assets/Birds" }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (!path.EndsWith(".glb") && !path.EndsWith(".gltf")) continue;
+                // Eagles do not forage on the ground in flocks of five.
+                if (path.ToLowerInvariant().Contains("eagle")) continue;
+
+                var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (go != null) found.Add(go);
+            }
+            return found;
+        }
+
         static List<GameObject> Load(string folder, params string[] prefixes)
         {
             var found = new List<GameObject>();
@@ -342,13 +366,23 @@ namespace Follow.EditorTools
             var mat = LoadOrCreate("M_Pond", shader ?? Shader.Find("Universal Render Pipeline/Lit"));
             if (shader != null)
             {
-                mat.SetColor("_ShallowColor", new Color(0.48f, 0.82f, 0.76f, 0.72f));
-                mat.SetColor("_DeepColor", new Color(0.09f, 0.28f, 0.40f, 0.95f));
-                mat.SetColor("_FoamColor", new Color(0.94f, 0.99f, 0.98f, 1f));
-                mat.SetFloat("_DepthRange", 2.6f);
-                mat.SetFloat("_FoamWidth", 0.42f);
-                mat.SetFloat("_RippleScale", 6.5f);
-                mat.SetFloat("_RippleSpeed", 0.4f);
+                // Shallow water is nearly clear, so the bank reads through it and the pond
+                // has a floor. The old deep colour was a 95%-opaque navy, which is what
+                // made every pond look like a cut-out rather than a hole full of water.
+                mat.SetColor("_ShallowColor", new Color(0.55f, 0.82f, 0.75f, 0.42f));
+                mat.SetColor("_DeepColor", new Color(0.14f, 0.38f, 0.46f, 0.86f));
+                mat.SetColor("_FoamColor", new Color(0.95f, 1f, 0.99f, 1f));
+                mat.SetFloat("_DepthRange", 1.8f);
+                mat.SetFloat("_FoamWidth", 0.3f);
+                mat.SetFloat("_FoamCutoff", 0.35f);
+                mat.SetFloat("_RippleScale", 3.2f);
+                mat.SetFloat("_RippleSpeed", 0.55f);
+                mat.SetFloat("_RippleStrength", 0.22f);
+                mat.SetFloat("_WaveHeight", 0.075f);
+                mat.SetFloat("_WaveScale", 0.65f);
+                mat.SetFloat("_WaveSpeed", 1.1f);
+                mat.SetFloat("_SpecPower", 22f);
+                mat.SetFloat("_SpecStrength", 0.35f);
                 mat.renderQueue = 3000;
             }
             EditorUtility.SetDirty(mat);
@@ -480,6 +514,7 @@ namespace Follow.EditorTools
             streamer.palette = palette;
             world.AddComponent<ScentField>();
             world.AddComponent<FloraField>();
+            world.AddComponent<Wildlife>();
             world.AddComponent<AtmosphereFX>();
 
             BuildCamp(palette);
@@ -488,6 +523,7 @@ namespace Follow.EditorTools
             NightVolume(world.transform);
             Systems();
             TuneDayCycle();
+            TuneDog();
 
             foreach (var name in new[] { "Player", "Dog" })
             {
@@ -508,6 +544,25 @@ namespace Follow.EditorTools
                 rig.pitch = 47f;
                 rig.fieldOfView = 38f;
                 rig.heightOffset = 1.5f;
+
+                // Without this the whole post stack is inert.
+                //
+                // A URP camera renders no volumes at all unless renderPostProcessing is
+                // on, and it is off by default. The scene has carried a graded forest
+                // profile and a separate night profile for a long time and neither of
+                // them has ever been drawn - which is why night was a dim afternoon
+                // rather than blue, and why the daytime contrast, bloom, vignette and
+                // grain were all invisible. Nothing was wrong with either profile.
+                var cam = rig.GetComponent<Camera>();
+                if (cam != null)
+                {
+                    var data = cam.GetUniversalAdditionalCameraData();
+                    data.renderPostProcessing = true;
+                    data.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+                    data.antialiasingQuality = AntialiasingQuality.Medium;
+                    data.renderShadows = true;
+                    EditorUtility.SetDirty(cam);
+                }
             }
 
             var hud = GameObject.Find("GameHud");
@@ -545,6 +600,52 @@ namespace Follow.EditorTools
             go.AddComponent<Photography>();
         }
 
+        /// <summary>
+        /// The dog's tuning, written onto the component rather than left to the field
+        /// defaults.
+        ///
+        /// Every one of these is a serialized public field, so a value already saved in
+        /// the scene wins over whatever the source says - changing a default in C# does
+        /// nothing to a dog that is already in Game.unity. That bit once already: the
+        /// bark floor and the recall window were raised in code and the scene carried on
+        /// using the old numbers, so the fix appeared not to work at all.
+        /// </summary>
+        static void TuneDog()
+        {
+            var dog = Object.FindFirstObjectByType<Follow.Dog.DogBrain>();
+            if (dog == null) return;
+
+            // Finding.
+            dog.huntRadius = 58f;
+            dog.scentWorkTime = 1.8f;
+            dog.findRadius = 7f;
+            dog.findCooldown = 16f;
+
+            // Voice. She was stood over a find for three quarters of every minute and
+            // calling every few seconds throughout, which is a dog you learn to ignore.
+            dog.barkFloor = 6.5f;
+            dog.callInterval = 4.5f;
+            dog.callsPerFind = 5;
+
+            // Recall. Long enough that a whistle is worth blowing.
+            dog.recallByBond = new Vector2(7f, 14f);
+
+            EditorUtility.SetDirty(dog);
+
+            // Her voice lives on a component the world builder does not recreate, so it
+            // drifts the same way. The bark carries a long way on purpose: it is the only
+            // thing in the game that tells you where she is.
+            var voice = dog.GetComponent<Follow.Dog.DogAudio>();
+            if (voice != null)
+            {
+                voice.barkVolume = 0.8f;
+                voice.barkRange = 85f;
+                voice.footVolume = 0.24f;
+                voice.footRange = 16f;
+                EditorUtility.SetDirty(voice);
+            }
+        }
+
         /// <summary>A second volume that only has an opinion after dark.</summary>
         static void NightVolume(Transform parent)
         {
@@ -570,8 +671,11 @@ namespace Follow.EditorTools
             cycle.dayLengthSeconds = 340f;
             cycle.nightSpeed = 2.6f;
             cycle.startTime = 0.10f;
-            cycle.duskAt = 0.54f;
-            cycle.darkAt = 0.62f;
+            // Dusk is more than twice as long as it was. The old window was eight
+            // hundredths of the cycle - about twenty-five seconds - which is a light
+            // switch, not a sunset.
+            cycle.duskAt = 0.50f;
+            cycle.darkAt = 0.72f;
             cycle.dawnAt = 0.94f;
             cycle.fogNear = 40f;
             cycle.fogFar = 155f;
@@ -589,37 +693,62 @@ namespace Follow.EditorTools
 
             // The night half is the part that matters here: a properly cold blue, not a
             // dimmed version of the afternoon.
+            // The blue has to arrive through a twilight rather than at one. Warm
+            // afternoon, then the warmth drains, then blue creeps up under it, then
+            // night. Going straight from brown to navy is what read as a switch.
+            // Eight stops exactly. The daytime plateau gives up its middle anchor so
+            // the four that shape the twilight can stay - which is the part being fixed.
             cycle.ambientColor = Ramp(
                 (0.00f, new Color(0.34f, 0.34f, 0.42f)),
                 (0.14f, new Color(0.54f, 0.56f, 0.55f)),
-                (0.40f, new Color(0.56f, 0.57f, 0.53f)),
-                (0.55f, new Color(0.44f, 0.36f, 0.34f)),
-                (0.66f, new Color(0.10f, 0.14f, 0.28f)),
-                (0.88f, new Color(0.11f, 0.15f, 0.30f)),
+                (0.50f, new Color(0.50f, 0.44f, 0.40f)),
+                (0.58f, new Color(0.36f, 0.35f, 0.44f)),
+                (0.65f, new Color(0.22f, 0.26f, 0.42f)),
+                (0.74f, new Color(0.11f, 0.15f, 0.31f)),
+                (0.90f, new Color(0.11f, 0.15f, 0.31f)),
                 (1.00f, new Color(0.34f, 0.34f, 0.42f)));
 
             cycle.fogColor = Ramp(
                 (0.00f, new Color(0.66f, 0.68f, 0.76f)),
                 (0.16f, new Color(0.80f, 0.84f, 0.82f)),
-                (0.44f, new Color(0.82f, 0.82f, 0.76f)),
-                (0.56f, new Color(0.88f, 0.60f, 0.40f)),
-                (0.68f, new Color(0.07f, 0.11f, 0.24f)),
+                (0.52f, new Color(0.90f, 0.64f, 0.42f)),
+                (0.60f, new Color(0.56f, 0.44f, 0.48f)),
+                (0.68f, new Color(0.22f, 0.24f, 0.42f)),
+                (0.76f, new Color(0.08f, 0.12f, 0.26f)),
                 (0.90f, new Color(0.09f, 0.13f, 0.28f)),
                 (1.00f, new Color(0.66f, 0.68f, 0.76f)));
 
+            // Re-laid across the wider dusk, so the sun is still doing something at
+            // the point the blue starts arriving instead of having already gone out.
             cycle.sunIntensity = new AnimationCurve(
                 new Keyframe(0.00f, 0.15f),
                 new Keyframe(0.12f, 0.95f),
                 new Keyframe(0.28f, 1.20f),
                 new Keyframe(0.48f, 0.85f),
-                new Keyframe(0.56f, 0.35f),
-                new Keyframe(0.61f, 0.00f),
+                new Keyframe(0.56f, 0.48f),
+                new Keyframe(0.64f, 0.16f),
+                new Keyframe(0.72f, 0.00f),
                 new Keyframe(0.93f, 0.00f),
                 new Keyframe(1.00f, 0.20f));
         }
 
+        /// <summary>
+        /// A colour ramp from a list of stops.
+        ///
+        /// Unity gradients hold eight colour keys and no more. Handing SetKeys a ninth
+        /// does not throw and does not warn - it quietly leaves the gradient degenerate,
+        /// and every Evaluate afterwards returns white. That is worth an assertion here
+        /// rather than a day spent wondering why the sky is the colour of paper.
+        /// </summary>
         static Gradient Ramp(params (float t, Color c)[] stops)
         {
+            if (stops.Length > 8)
+            {
+                Debug.LogError("Ramp: " + stops.Length + " stops, but a Gradient holds 8. "
+                             + "The extra keys are dropped and the ramp evaluates to white.");
+                stops = stops.Take(8).ToArray();
+            }
+
             var g = new Gradient();
             var keys = new GradientColorKey[stops.Length];
             for (int i = 0; i < stops.Length; i++) keys[i] = new GradientColorKey(stops[i].c, stops[i].t);

@@ -67,9 +67,11 @@ namespace Follow.Game
             var cycle = DayCycle.Instance;
             if (cycle == null || _volume == null) return;
 
-            // Eased, so the change reads as the light going rather than a switch flipping.
+            // Eased, and then rate-limited on top, so the grade can never arrive faster
+            // than about three seconds however abruptly the clock is moved - sleeping
+            // sets the time outright and a hard cut to full night looks like a glitch.
             float target = Mathf.SmoothStep(0f, 1f, cycle.Night);
-            _volume.weight = Mathf.MoveTowards(_volume.weight, target, Time.deltaTime * 0.8f);
+            _volume.weight = Mathf.MoveTowards(_volume.weight, target, Time.deltaTime * 0.35f);
         }
     }
 }

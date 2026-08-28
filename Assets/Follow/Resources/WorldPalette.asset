@@ -271,5 +271,7 @@ MonoBehaviour:
   tent: {fileID: 919132149155446097, guid: 782d75e4f88027748883c023d86895b4, type: 3}
   logStack: {fileID: 919132149155446097, guid: 967720063c7c29d468b13cfab0d9472c, type: 3}
   stump: {fileID: 919132149155446097, guid: e13b912a1788de1429168aa6cf0486dc, type: 3}
+  birdModels:
+  - {fileID: 8128668236925612103, guid: 000678f03d859a64a88b8b8248229bdf, type: 3}
   stickModel: {fileID: 0}
   forageModels: []

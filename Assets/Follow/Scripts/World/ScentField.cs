@@ -24,13 +24,17 @@ namespace Follow.World
     {
         [Header("Population")]
         [Tooltip("Unconsumed subjects kept alive around the player.")]
-        public int target = 12;
+        public int target = 8;
 
+        // The ring has to sit inside the ground the dog actually covers. It used to start
+        // at 38 metres and reach 95, while a day-one dog works a radius of about fourteen
+        // - so she could not have reached a single subject in the whole forest however
+        // long you walked. That one mismatch is why the game had no animals in it.
         [Header("Ring, in metres")]
-        public float minSpawn = 38f;
-        public float maxSpawn = 95f;
+        public float minSpawn = 20f;
+        public float maxSpawn = 58f;
         [Tooltip("Beyond this the subject is retired - it wandered off.")]
-        public float retireRadius = 165f;
+        public float retireRadius = 130f;
 
         [Tooltip("Share of subjects placed near water, where animals actually go.")]
         [Range(0f, 1f)] public float pondBias = 0.45f;
@@ -72,7 +76,11 @@ namespace Follow.World
 
                 bool gone = point.Consumed;
                 bool tooFar = Vector3.Distance(point.transform.position, here) > retireRadius;
-                // Never retire the one the dog is standing over; that is the payoff.
+
+                // Never retire the one the dog is standing over - that is the payoff - and
+                // never one that is being photographed right now.
+                var subject = point.GetComponentInChildren<Follow.Game.PhotoSubject>();
+                if (subject != null && subject.Busy) continue;
                 if (!gone && (!tooFar || point == held)) continue;
 
                 _mine.RemoveAt(i);
@@ -110,7 +118,7 @@ namespace Follow.World
                 }
 
                 float d = Vector2.Distance(at, new Vector2(around.x, around.z));
-                if (d < minSpawn * 0.7f || d > maxSpawn * 1.3f) continue;
+                if (d < minSpawn * 0.6f || d > maxSpawn * 1.2f) continue;
                 if (!WorldComposer.IsWalkable(at.x, at.y)) continue;
                 if (Crowded(at)) continue;
 
@@ -125,7 +133,7 @@ namespace Follow.World
             {
                 if (point == null) continue;
                 var p = point.transform.position;
-                if ((new Vector2(p.x, p.z) - at).sqrMagnitude < 18f * 18f) return true;
+                if ((new Vector2(p.x, p.z) - at).sqrMagnitude < 15f * 15f) return true;
             }
             return false;
         }

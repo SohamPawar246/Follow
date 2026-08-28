@@ -17,6 +17,20 @@ namespace Follow.World
     /// </summary>
     public class Pickup : MonoBehaviour
     {
+        /// <summary>
+        /// Everything currently lying on the ground.
+        ///
+        /// The dog used to look for an errand with a whole-scene FindObjectsByType, which
+        /// runs while she is ranging - every frame, allocating an array of every pickup in
+        /// three hundred metres of streamed forest. A register costs one list insertion
+        /// per stick and nothing at all per frame.
+        /// </summary>
+        static readonly List<Pickup> All = new List<Pickup>();
+        public static IReadOnlyList<Pickup> Active => All;
+
+        void OnEnable() { if (!All.Contains(this)) All.Add(this); }
+        void OnDisable() { All.Remove(this); }
+
         public PickupKind kind = PickupKind.Stick;
         public int amount = 1;
         [Tooltip("Generous on purpose. Hunting for the exact centimetre is not a mechanic.")]
